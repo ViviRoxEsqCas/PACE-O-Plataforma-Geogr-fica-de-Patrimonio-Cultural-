@@ -1,0 +1,99 @@
+/* PACEÑO · tokens de diseño
+   Estilo: cuaderno cuadriculado, colores vivos y guiños andinos. */
+
+@import url('https://fonts.googleapis.com/css2?family=Cutive+Mono&family=Space+Mono:wght@400;700&family=Rubik+Mono+One&display=swap');
+
+:root {
+  /* Color */
+  --rojo-aguayo: #A8423C;   /* principal, opaco */
+  --rojo-hover:  #7E2F2B;
+  --maiz:        #F5C842;
+  --valle:       #4FA36A;
+  --verde-hoja:  #2F6B45;   /* botones */
+  --lago:        #6FA3C7;
+  --kantuta:     #D8517F;
+  --tinta:       #2A2723;
+  --papel:       #F6F2E9;
+  --cuadricula:  #C9D6E6;
+
+  /* Tipografía */
+  --f-titulo:  'Cutive Mono', 'Courier New', monospace;
+  --f-cuerpo:  'Space Mono', 'Courier New', monospace;
+  --f-marca:   'Rubik Mono One', 'Arial Black', sans-serif;
+
+  --borde: 2.5px solid var(--tinta);
+  --sombra-dura: 4px 4px 0 var(--tinta);
+}
+
+/* Fondo de cuaderno con márgenes rojos */
+body {
+  margin: 0;
+  color: var(--tinta);
+  font-family: var(--f-cuerpo);
+  background-color: var(--papel);
+  background-image:
+    linear-gradient(var(--cuadricula) 1px, transparent 1px),
+    linear-gradient(90deg, var(--cuadricula) 1px, transparent 1px);
+  background-size: 24px 24px;
+}
+
+h1, h2, h3 {
+  font-family: var(--f-titulo);
+  font-weight: 400;
+  text-transform: uppercase;
+}
+
+.marca {
+  font-family: var(--f-marca);
+  color: var(--rojo-aguayo);
+  -webkit-text-stroke: 3px var(--papel);
+  paint-order: stroke fill;
+  text-shadow: 3px 3px 0 var(--tinta);
+}
+
+/* Etiquetas de categoría en bloques de color */
+.etiqueta { display: inline-block; padding: .35rem .8rem; border: var(--borde); font-size: .8rem; text-transform: uppercase; }
+.etiqueta--maiz  { background: var(--maiz); }
+.etiqueta--lago  { background: var(--lago); }
+.etiqueta--rojo  { background: var(--rojo-aguayo); color: var(--papel); }
+.etiqueta--valle { background: var(--valle); }
+
+/* Botón con sombra dura */
+.btn {
+  font: 700 .85rem var(--f-cuerpo);
+  text-transform: uppercase;
+  padding: .7rem 1.4rem;
+  color: var(--papel);
+  background: var(--verde-hoja);
+  border: var(--borde);
+  box-shadow: var(--sombra-dura);
+  cursor: pointer;
+  transition: transform .15s, box-shadow .15s;
+}
+.btn:hover { transform: translate(2px, 2px); box-shadow: 2px 2px 0 var(--tinta); }
+
+/* Tarjeta de ficha */
+.tarjeta { background: var(--papel); border: var(--borde); box-shadow: var(--sombra-dura); }
+
+/* Franja de aguayo para separar secciones */
+.aguayo {
+  height: 18px;
+  background:
+    linear-gradient(135deg, var(--rojo-aguayo) 25%, transparent 25%) -9px 0,
+    linear-gradient(225deg, var(--maiz) 25%, transparent 25%) -9px 0,
+    linear-gradient(315deg, var(--rojo-aguayo) 25%, transparent 25%),
+    linear-gradient(45deg,  var(--maiz) 25%, var(--papel) 25%);
+  background-size: 18px 18px;
+  border-top: var(--borde);
+  border-bottom: var(--borde);
+}
+
+/* Movimiento (el CSS sí corre en la app, a diferencia del README) */
+@keyframes flotar { 0%,100% { transform: translateY(0); } 50% { transform: translateY(-8px); } }
+@keyframes girar  { to { transform: rotate(360deg); } }
+.flotar { animation: flotar 4s ease-in-out infinite; }
+.girar  { animation: girar 14s linear infinite; }
+
+@media (prefers-reduced-motion: reduce) {
+  .flotar, .girar { animation: none; }
+}
