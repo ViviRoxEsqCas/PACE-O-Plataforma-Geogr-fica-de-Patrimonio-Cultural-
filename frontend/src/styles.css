@@ -1,0 +1,152 @@
+/* Paceño · sistema visual
+   Vino «chicha» de la portada del informe + verde aguayo como segundo color; el motivo escalonado andino
+   (borde de la cabecera) y el corazón (marcador) son los únicos elementos decorativos. */
+:root {
+  --vino: #7b3b3a;
+  --vino-oscuro: #5c2b2a;
+  --vino-claro: #f3e7e5;
+  --aguayo: #1f6f6b;
+  --mostaza: #e0a526;
+  --tinta: #2a2020;
+  --apagado: #5f5250;
+  --papel: #f7f4f3;
+  --blanco: #fff;
+  --linea: #dccfcd;
+  --radio: 10px;
+  --fuente: system-ui, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+  --fuente-marca: ui-rounded, "Nunito", "Varela Round", "Segoe UI Variable Display", "Segoe UI", system-ui, sans-serif;
+  --alto-cabecera: 112px;
+}
+
+*, *::before, *::after { box-sizing: border-box; }
+[hidden] { display: none !important; }
+html { -webkit-text-size-adjust: 100%; }
+body { margin: 0; font-family: var(--fuente); color: var(--tinta); background: var(--papel); line-height: 1.5; font-size: 1rem; }
+h1, h2, h3 { line-height: 1.2; margin: 0; font-family: var(--fuente-marca); }
+p { margin: 0; }
+a { color: var(--vino); text-underline-offset: 2px; }
+a:hover { color: var(--vino-oscuro); }
+img { max-width: 100%; height: auto; display: block; }
+
+:focus-visible { outline: 3px solid var(--aguayo); outline-offset: 2px; border-radius: 3px; }
+.sr-only { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+.saltar { position: absolute; left: 8px; top: -60px; z-index: 2000; background: var(--blanco); padding: 10px 14px; border-radius: 6px; }
+.saltar:focus { top: 8px; }
+
+/* Cabecera */
+.cabecera { background: var(--vino); color: var(--blanco); }
+.cabecera__contenido { max-width: 1280px; margin: 0 auto; padding: 14px 16px 10px; }
+.marca { display: inline-flex; align-items: center; gap: 8px; color: inherit; text-decoration: none; }
+.marca:hover { color: inherit; }
+.marca__nombre { font-family: var(--fuente-marca); font-weight: 800; font-size: 1.9rem; letter-spacing: 0.04em; line-height: 1.1; }
+.corazon { color: var(--blanco); flex: none; }
+.cabecera__lema { font-size: 0.95rem; opacity: 0.95; margin-top: 2px; max-width: 46ch; }
+.cabecera__escalera {
+  height: 12px;
+  background-color: var(--vino-oscuro);
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='40' height='12' viewBox='0 0 40 12'%3E%3Cpath d='M0 12V8h8V4h8V0h8v4h8v4h8v4z' fill='%237b3b3a'/%3E%3C/svg%3E");
+  background-size: 40px 12px;
+  background-repeat: repeat-x;
+}
+
+/* Botones y campos (objetivo táctil ≥ 44 px) */
+.boton { font: inherit; min-height: 44px; padding: 0 16px; border-radius: 999px; border: 2px solid transparent; cursor: pointer; display: inline-flex; align-items: center; justify-content: center; text-decoration: none; font-weight: 600; }
+.boton:disabled { opacity: 0.55; cursor: not-allowed; }
+.boton--primario { background: var(--vino); color: var(--blanco); }
+.boton--primario:hover { background: var(--vino-oscuro); color: var(--blanco); }
+.boton--secundario { background: var(--blanco); color: var(--vino); border-color: var(--vino); }
+.boton--secundario:hover:not(:disabled) { background: var(--vino-claro); color: var(--vino-oscuro); }
+.boton--texto { background: none; color: var(--vino); padding: 0 6px; min-height: 44px; text-decoration: underline; text-underline-offset: 3px; }
+
+.campo { display: flex; flex-direction: column; gap: 4px; }
+.campo label { font-weight: 600; font-size: 0.9rem; }
+input[type="search"], select { font: inherit; min-height: 44px; padding: 0 12px; border: 2px solid var(--linea); border-radius: var(--radio); background: var(--blanco); color: var(--tinta); width: 100%; }
+input[type="search"]:focus-visible, select:focus-visible { border-color: var(--aguayo); }
+
+/* Explorar */
+.explorar { max-width: 1280px; margin: 0 auto; padding: 16px; display: grid; gap: 14px; grid-template-columns: minmax(0, 1fr); }
+.titulo-pagina { font-size: 1.4rem; margin-bottom: 12px; }
+@media (max-width: 899px) {
+  /* En móvil el espacio es para filtros y mapa; el título sigue disponible para lectores de pantalla. */
+  .titulo-pagina { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); margin: 0; }
+  .explorar { gap: 10px; padding-top: 12px; }
+  .cabecera__lema { font-size: 0.85rem; }
+  .ubicacion { margin-top: 8px; }
+}
+.filtros { display: grid; gap: 10px; }
+.ubicacion { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 12px; margin-top: 10px; font-size: 0.9rem; color: var(--apagado); }
+.ubicacion__aviso { flex-basis: 100%; color: var(--tinta); background: var(--vino-claro); padding: 8px 12px; border-radius: var(--radio); }
+.contador { margin-top: 10px; font-weight: 600; color: var(--apagado); min-height: 1.5em; }
+
+.pestanas { display: grid; grid-template-columns: 1fr 1fr; background: var(--blanco); border: 2px solid var(--vino); border-radius: 999px; overflow: hidden; }
+.pestanas button { font: inherit; font-weight: 700; min-height: 44px; border: 0; background: transparent; color: var(--vino); cursor: pointer; }
+.pestanas button[aria-pressed="true"] { background: var(--vino); color: var(--blanco); }
+
+.lista { list-style: none; margin: 0; padding: 0; display: grid; gap: 10px; }
+.tarjeta { background: var(--blanco); border: 2px solid var(--linea); border-radius: var(--radio); padding: 12px 14px; display: grid; gap: 4px; }
+.tarjeta--activa { border-color: var(--aguayo); }
+.tarjeta__titulo { font-size: 1.05rem; }
+.tarjeta__titulo a { text-decoration: none; }
+.tarjeta__titulo a:hover { text-decoration: underline; }
+.tarjeta__meta { display: flex; flex-wrap: wrap; gap: 4px 10px; align-items: center; font-size: 0.9rem; color: var(--apagado); }
+.tarjeta__ubicacion { display: flex; flex-wrap: wrap; align-items: center; gap: 4px 12px; font-size: 0.9rem; }
+.tarjeta__ubicacion--nula { color: var(--apagado); font-style: italic; }
+.etiqueta { font-size: 0.8rem; font-weight: 700; padding: 1px 8px; border-radius: 999px; border: 1.5px solid currentColor; white-space: nowrap; }
+.etiqueta--material { color: var(--vino); }
+.etiqueta--inmaterial { color: var(--aguayo); }
+
+.paginacion { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin-top: 14px; font-size: 0.9rem; }
+
+.explorar__mapa { position: relative; }
+.mapa { height: 62dvh; min-height: 340px; border-radius: var(--radio); border: 2px solid var(--linea); background: #e9e3e1; z-index: 0; }
+.mapa__nota { margin-top: 8px; font-size: 0.9rem; color: var(--apagado); }
+.mapa__aviso { position: absolute; inset: 12px 12px auto 12px; z-index: 500; background: var(--blanco); padding: 10px 12px; border-radius: var(--radio); border: 2px solid var(--vino); font-size: 0.9rem; }
+.marcador { background: none; border: 0; filter: drop-shadow(0 1px 2px rgba(0, 0, 0, 0.45)); }
+.vista-previa { display: grid; gap: 6px; min-width: 190px; font-family: var(--fuente); }
+.vista-previa strong { font-family: var(--fuente-marca); font-size: 1rem; }
+.vista-previa span { color: var(--apagado); font-size: 0.85rem; }
+.leaflet-container a.boton--primario { color: var(--blanco); }
+
+/* Estados */
+.estado { padding: 16px; border-radius: var(--radio); background: var(--blanco); border: 2px dashed var(--linea); display: grid; gap: 10px; justify-items: start; }
+.estado--error { border: 2px solid var(--vino); border-style: solid; }
+.estado__titulo { font-weight: 700; }
+.estado--cargando { display: flex; align-items: center; gap: 10px; border-style: solid; }
+.giro { width: 18px; height: 18px; border: 3px solid var(--linea); border-top-color: var(--vino); border-radius: 50%; animation: gira 0.9s linear infinite; }
+@keyframes gira { to { transform: rotate(360deg); } }
+
+/* Ficha */
+.ficha { max-width: 760px; margin: 0 auto; padding: 16px 16px 40px; }
+.ficha__volver { margin-left: -6px; }
+.ficha article { display: grid; gap: 22px; margin-top: 6px; }
+.ficha__encabezado { display: grid; gap: 8px; }
+.ficha h1 { font-size: 1.7rem; }
+.ficha h2 { font-size: 1.15rem; margin-bottom: 8px; color: var(--vino-oscuro); }
+.ficha__texto { max-width: 68ch; }
+.ficha__mapa .mapa { height: 300px; min-height: 0; margin-top: 10px; }
+.ficha__distancia { margin-top: 10px; }
+.galeria { display: grid; gap: 14px; }
+.galeria figure { margin: 0; }
+.galeria img { border-radius: var(--radio); width: 100%; }
+.galeria figcaption { font-size: 0.85rem; color: var(--apagado); margin-top: 4px; }
+.sin-imagenes { padding: 12px 14px; background: var(--vino-claro); border-radius: var(--radio); color: var(--tinta); font-size: 0.95rem; }
+.fuentes { margin: 0; padding-left: 1.3rem; display: grid; gap: 10px; }
+.fuentes__meta { display: block; font-size: 0.85rem; color: var(--apagado); }
+
+.pie { max-width: 1280px; margin: 0 auto; padding: 18px 16px 28px; font-size: 0.85rem; color: var(--apagado); }
+
+/* Escritorio: lista y mapa lado a lado */
+@media (min-width: 900px) {
+  .explorar { grid-template-columns: 410px minmax(0, 1fr); grid-template-rows: auto minmax(0, 1fr); height: calc(100dvh - var(--alto-cabecera) - 4px); gap: 16px 20px; padding-bottom: 8px; }
+  .pestanas { display: none; }
+  .explorar__filtros { grid-column: 1; grid-row: 1; }
+  .explorar__lista { grid-column: 1; grid-row: 2; overflow: auto; padding-right: 4px; }
+  .explorar__mapa { grid-column: 2; grid-row: 1 / span 2; display: flex; flex-direction: column; min-height: 0; }
+  .explorar__mapa .mapa { height: auto; flex: 1; min-height: 0; }
+  .pie { padding-top: 6px; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .giro { animation-duration: 3s; }
+  * { scroll-behavior: auto !important; }
+}

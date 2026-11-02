@@ -1,0 +1,16 @@
+ ✓ src/lib/api.test.js > listarBienes > envía q, categoria, page y page_size; omite los vacíos 4ms
+ ✓ src/lib/api.test.js > listarBienes > traduce un fallo de red en ApiError con mensaje claro 2ms
+ ✓ src/lib/api.test.js > listarBienes > propaga el AbortError sin convertirlo 2ms
+ ✓ src/lib/api.test.js > listarBienes > mapea errores HTTP 1ms
+ ✓ src/lib/api.test.js > obtenerBien > convierte 404 en ApiError con estado 404 1ms
+ ✓ src/lib/api.test.js > listarMarcadores > recorre todas las páginas y conserva solo bienes con ubicación puntual 1ms
+ ✓ src/lib/distancia.test.js > distanciaMetros > es 0 entre el mismo punto 2ms
+ ✓ src/lib/distancia.test.js > distanciaMetros > un grado de longitud en el ecuador mide ~111,2 km 0ms
+ ✓ src/lib/distancia.test.js > distanciaMetros > Plaza Murillo → plaza San Francisco está a unos 340–380 m (cálculo manual ≈ 357 m) 0ms
+ ✓ src/lib/distancia.test.js > formatearDistancia > redondea a decenas de metros bajo 1 km 0ms
+ ✓ src/lib/distancia.test.js > formatearDistancia > usa kilómetros con coma decimal desde 1 km 0ms
+ ✓ src/lib/distancia.test.js > formatearDistancia > devuelve texto vacío si no es un número 0ms
+ ✓ src/lib/distancia.test.js > distanciaA > es null sin posición o sin ubicación puntual (RF-12) 0ms
+ ✓ src/lib/distancia.test.js > distanciaA > calcula la distancia cuando hay posición y coordenadas 0ms
+ Test Files  2 passed (2)
+      Tests  14 passed (14)
