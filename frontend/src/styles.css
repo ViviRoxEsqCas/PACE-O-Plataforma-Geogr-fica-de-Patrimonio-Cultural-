@@ -150,3 +150,24 @@ input[type="search"]:focus-visible, select:focus-visible { border-color: var(--a
   .giro { animation-duration: 3s; }
   * { scroll-behavior: auto !important; }
 }
+
+/* Semana 3: Practicar y Reportar */
+.practicar, .reportar { display: grid; gap: 12px; justify-items: start; }
+.practicar__puntaje { font-size: 0.95rem; color: var(--apagado); }
+.practicar__puntaje strong { color: var(--vino-oscuro); font-size: 1.15rem; }
+.actividad { width: 100%; display: grid; gap: 10px; background: var(--blanco); border: 2px solid var(--linea); border-radius: var(--radio); padding: 14px; }
+.actividad fieldset { border: 0; margin: 0; padding: 0; display: grid; gap: 8px; min-width: 0; }
+.actividad legend { font-weight: 700; padding: 0; margin-bottom: 8px; }
+.actividad__opcion { display: flex; align-items: flex-start; gap: 10px; min-height: 44px; padding: 8px 10px; border: 2px solid var(--linea); border-radius: var(--radio); cursor: pointer; }
+.actividad__opcion:has(input:checked) { border-color: var(--aguayo); background: #eef6f5; }
+.actividad__opcion input { margin-top: 4px; width: 18px; height: 18px; accent-color: var(--aguayo); flex: none; }
+.resultado { width: 100%; padding: 12px 14px; border-radius: var(--radio); border: 2px solid; display: grid; gap: 8px; justify-items: start; background: var(--blanco); }
+.resultado--ok { border-color: var(--aguayo); }
+.resultado--mal { border-color: var(--vino); }
+.resultado__titulo { font-weight: 700; }
+.formulario { width: 100%; display: grid; gap: 12px; }
+.formulario__nota { font-size: 0.9rem; color: var(--apagado); }
+.formulario select, .formulario textarea { font: inherit; padding: 10px 12px; border: 2px solid var(--linea); border-radius: var(--radio); background: var(--blanco); color: var(--tinta); width: 100%; min-height: 44px; }
+.formulario textarea { resize: vertical; }
+.formulario__contador { font-size: 0.85rem; color: var(--apagado); align-self: flex-end; }
+.formulario__acciones { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }

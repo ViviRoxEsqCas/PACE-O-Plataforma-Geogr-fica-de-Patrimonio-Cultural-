@@ -3,6 +3,8 @@ import { Link, useLocation, useNavigate, useParams } from "react-router-dom";
 import { EtiquetaTipo } from "../components/ListaBienes";
 import { Cargando, ErrorCarga } from "../components/Estados";
 import MapaBienes from "../components/MapaBienes";
+import Practicar from "../components/Practicar";
+import Reportar from "../components/Reportar";
 import { useUbicacion } from "../hooks/Ubicacion";
 import { useDatos } from "../hooks/useDatos";
 import { obtenerBien } from "../lib/api";
@@ -126,6 +128,9 @@ export default function Ficha() {
               ))}
             </ol>
           </section>
+
+          <Practicar bienId={bien.id} />
+          <Reportar bienId={bien.id} />
         </article>
       )}
     </main>

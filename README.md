@@ -6,7 +6,7 @@
 
 ![Semana 1](https://img.shields.io/badge/SEMANA_1-COMPLETA-4FA36A?style=for-the-badge&labelColor=2A2723)
 ![Semana 2](https://img.shields.io/badge/SEMANA_2-CON_PENDIENTES-F5C842?style=for-the-badge&labelColor=2A2723)
-![Semana 3](https://img.shields.io/badge/SEMANA_3-PENDIENTE-6FA3C7?style=for-the-badge&labelColor=2A2723)
+![Semana 3](https://img.shields.io/badge/SEMANA_3-COMPLETA-4FA36A?style=for-the-badge&labelColor=2A2723)
 ![Semana 4](https://img.shields.io/badge/SEMANA_4-PENDIENTE-6FA3C7?style=for-the-badge&labelColor=2A2723)
 
 ![React](https://img.shields.io/badge/React-A8423C?style=flat-square&logo=react&logoColor=white)
@@ -25,7 +25,7 @@
 
 <div align="center">
 
-| 📚 **10** fichas con fuente | 🧪 **71** pruebas (43 back · 14 unit · 14 E2E) | 📱 **3** tamaños adaptables |
+| 📚 **13** fichas con fuente | 🧪 **107** pruebas (72 back · 21 unit · 14 E2E) | 📱 **3** tamaños adaptables |
 |:--:|:--:|:--:|
 
 </div>
@@ -41,7 +41,9 @@
 | 📍 **Explorar el mapa** | Marcadores con vista previa; la lista sirve como alternativa. |
 | 📄 **Consultar fichas** | Descripción, ubicación y fuentes documentales. |
 | 📏 **Medir distancia** | Opcional y bajo demanda. Se calcula en tu navegador; nunca se envía ni se guarda. |
-| 🛠️ **Administrar** | Panel editorial con roles de Editor y Administrador. |
+| 🎓 **Practicar** | Preguntas de opción múltiple por ficha, corregidas en el servidor, con explicación, reintento y puntuación que queda solo en tu navegador. |
+| 📣 **Reportar** | Formulario anónimo (tipo + descripción de hasta 500 caracteres) que revisa el equipo editorial. |
+| 🛠️ **Administrar** | Panel editorial con roles de Editor y Administrador: fichas, actividades y bandeja de reportes con historial de revisión. |
 
 <img src="assets/divider.svg" width="100%" alt="">
 
@@ -136,7 +138,8 @@ pip install -r requirements.txt
 Copy-Item .env.example .env
 # Edita .env: DB_PASSWORD y DJANGO_SECRET_KEY
 python manage.py migrate
-python manage.py cargar_fichas_iniciales --actualizar
+python manage.py cargar_fichas_iniciales --actualizar --retirar-obsoletas
+python manage.py cargar_actividades_iniciales
 python manage.py crear_cuentas_demo
 python manage.py runserver
 ```
@@ -170,14 +173,15 @@ Abre **http://localhost:5173**
 |:--|:--|:--:|
 | **01** | Django, PostgreSQL, modelo de datos, roles, panel editorial y API | ✅ |
 | **02** | PWA React: lista, ficha, mapa, búsqueda, filtros y distancia | ✅ ⚠️ |
-| **03** | Actividades de opción múltiple y reportes ciudadanos | ⏳ |
+| **03** | Actividades de opción múltiple y reportes ciudadanos | ✅ · [guía](docs/semana3.md) |
 | **04** | Manifiesto PWA, uso sin conexión, despliegue HTTPS y documentación final | ⏳ |
 
 ### Pendientes conocidos
 
-- **Imágenes:** 0 de 10 fichas tienen imágenes reales atribuidas (falta cargarlas desde Django Admin).
-- **Coordenadas:** por contrastar con la IDE La Paz; Casa Museo de Murillo y avenida Aniceto Arce tienen confianza baja. Museo y Convento de San Francisco comparten coordenadas y sus marcadores se superponen.
-- **Patrimonio inmaterial:** las 4 manifestaciones requieren validación con especialistas o personas portadoras.
+- **Imágenes:** 0 de 13 fichas tienen imágenes cargadas todavía. Ya existe el espacio para cargarlas: [`contenido/imagenes/`](contenido/imagenes/LEEME.md) + `python manage.py cargar_imagenes`.
+- **Actividades:** las 10 preguntas de arranque usan solo datos de las fichas y sus leyes; requieren revisión editorial.
+- **Coordenadas:** por contrastar con la IDE La Paz; 5 tienen confianza baja (Casa Museo, Calle Jaén, Museo Costumbrista, Museo del Litoral y Teatro Municipal). Los museos de la calle Jaén están a pocos metros y sus marcadores se superponen al alejar el mapa. Detalle en [`verificacion_fichas.md`](docs/verificacion_fichas.md).
+- **Patrimonio inmaterial:** las 3 manifestaciones requieren validación con especialistas o personas portadoras.
 - **Pruebas E2E:** solo en Chromium sobre Linux; falta Windows 11, Safari, Firefox e iOS. Sin conexión a teselas, el mapa base aparece gris en las capturas.
 - **Captura sintética:** `pt09_imagen_sintetica_de_prueba_con_atribucion.png` es una imagen de prueba, no contenido patrimonial real.
 

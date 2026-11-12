@@ -21,13 +21,28 @@ function consulta(params) {
   return texto ? `?${texto}` : "";
 }
 
-async function pedir(ruta, params, signal) {
+async function pedir(ruta, params, signal, opciones = {}) {
   let respuesta;
   try {
-    respuesta = await fetch(`${BASE}${ruta}${consulta(params)}`, { signal, headers: { Accept: "application/json" } });
+    respuesta = await fetch(`${BASE}${ruta}${consulta(params)}`, {
+      signal,
+      ...opciones,
+      headers: { Accept: "application/json", ...(opciones.headers ?? {}) },
+    });
   } catch (error) {
     if (error?.name === "AbortError") throw error;
     throw new ApiError("No se pudo conectar con el servidor. Revisa tu conexión e inténtalo de nuevo.");
+  }
+  if (respuesta.status === 429) throw new ApiError("Enviaste varios reportes seguidos. Espera un rato antes de enviar otro.", 429);
+  if (respuesta.status === 400) {
+    let detalle = {};
+    try {
+      detalle = await respuesta.json();
+    } catch {
+      /* sin detalle */
+    }
+    const primero = Object.values(detalle).flat()[0];
+    throw new ApiError(typeof primero === "string" ? primero : "Los datos enviados no son válidos.", 400);
   }
   if (respuesta.status === 404) throw new ApiError("No se encontró lo que buscas.", 404);
   if (!respuesta.ok) throw new ApiError("El servidor no pudo responder. Inténtalo de nuevo en unos minutos.", respuesta.status);
@@ -58,3 +73,16 @@ export async function listarMarcadores({ q, categoria } = {}, signal) {
 
 export const obtenerBien = (id, signal) => pedir(`/api/bienes/${encodeURIComponent(id)}/`, null, signal);
 export const listarCategorias = (signal) => pedir("/api/categorias/", null, signal);
+
+// --- Semana 3 -----------------------------------------------------------------
+const enviarJson = (ruta, cuerpo, signal) =>
+  pedir(ruta, null, signal, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(cuerpo) });
+
+/** Actividades activas de una ficha. La respuesta correcta NO viene en los datos (RN-04). */
+export const listarActividades = (bienId, signal) => pedir(`/api/bienes/${encodeURIComponent(bienId)}/actividades/`, null, signal);
+/** Corrige en el servidor. Devuelve { correcta, opcion_correcta, puntos, retroalimentacion }. */
+export const responderActividad = (actividadId, opcionId, signal) =>
+  enviarJson(`/api/actividades/${encodeURIComponent(actividadId)}/responder/`, { opcion: opcionId }, signal);
+export const listarTiposReporte = (signal) => pedir("/api/tipos-reporte/", null, signal);
+/** Envía un reporte: { bien, tipo_reporte, descripcion } → { id, estado }. */
+export const enviarReporte = (datos, signal) => enviarJson("/api/reportes/", datos, signal);

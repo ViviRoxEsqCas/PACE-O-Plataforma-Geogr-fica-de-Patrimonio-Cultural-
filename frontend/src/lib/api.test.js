@@ -47,3 +47,21 @@ describe("listarMarcadores", () => {
     expect(fetchSimulado.mock.calls[0][0]).toContain("page_size=100");
   });
 });
+
+describe("semana 3", () => {
+  it("responderActividad hace POST JSON y devuelve la corrección", async () => {
+    const f = vi.fn().mockResolvedValue(respuesta({ correcta: true, puntos: 10 }));
+    vi.stubGlobal("fetch", f);
+    const { responderActividad } = await import("./api");
+    await expect(responderActividad(5, 12)).resolves.toMatchObject({ correcta: true });
+    expect(f.mock.calls[0][0]).toBe("/api/actividades/5/responder/");
+    expect(f.mock.calls[0][1]).toMatchObject({ method: "POST", body: JSON.stringify({ opcion: 12 }) });
+  });
+  it("enviarReporte traduce 429 y 400 a mensajes claros", async () => {
+    const { enviarReporte } = await import("./api");
+    vi.stubGlobal("fetch", vi.fn().mockResolvedValue(respuesta({}, 429)));
+    await expect(enviarReporte({})).rejects.toMatchObject({ estado: 429, message: expect.stringMatching(/Espera/) });
+    vi.stubGlobal("fetch", vi.fn().mockResolvedValue(respuesta({ descripcion: ["Asegúrese de que este campo no tenga más de 500 caracteres."] }, 400)));
+    await expect(enviarReporte({})).rejects.toMatchObject({ estado: 400, message: expect.stringMatching(/500/) });
+  });
+});

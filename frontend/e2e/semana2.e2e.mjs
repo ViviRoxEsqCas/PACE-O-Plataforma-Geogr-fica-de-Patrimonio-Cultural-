@@ -43,7 +43,7 @@ async function esperarMarcadores(p, n) { await p.waitForFunction((n) => document
 await caso("PT-06", "Mapa: un marcador por bien con coordenadas; abre vista previa y la ficha", async () => {
   const p = await nuevaPagina();
   await p.goto(BASE); await esperarLista(p);
-  await esperarMarcadores(p, 6);
+  await esperarMarcadores(p, 10);
   const bienesConUbicacion = (await (await p.request.get(`${BASE}/api/bienes/?page_size=100`)).json()).results.filter((b) => b.tiene_ubicacion).length;
   igual(await p.locator(".marcador").count(), bienesConUbicacion, "marcadores = bienes con coordenadas");
   await p.screenshot({ path: `${SALIDA}/pt06_escritorio_mapa_lista.png` });
@@ -66,12 +66,13 @@ await caso("PT-07", "Búsqueda: «plaza», «PLAZA» y nombre con tilde dan resu
     const respuesta = p.waitForResponse((r) => r.url().includes("/api/bienes/") && r.url().includes("page_size=10") && r.url().includes(`q=${encodeURIComponent(texto.trim())}`));
     await p.fill('input[type="search"]', texto);
     const { results } = await (await respuesta).json();
-    await p.waitForFunction((n) => document.querySelectorAll(".lista .tarjeta").length === n, results.length);
+    // Espera a que la lista muestre exactamente los nombres devueltos (no basta comparar cantidades: dos búsquedas seguidas pueden dar 1 y 1).
+    await p.waitForFunction((esperados) => JSON.stringify([...document.querySelectorAll(".lista .tarjeta__titulo")].map((e) => e.innerText)) === JSON.stringify(esperados), results.map((r) => r.nombre));
     return nombres(p);
   };
   const a = await buscar("plaza"), b = await buscar("PLAZA");
   igual(b, a, "«PLAZA» = «plaza»");
-  cierto(a.some((n) => n.includes("Plaza Murillo")), "encuentra Plaza Murillo");
+  cierto(a.some((n) => n.includes("Plaza Pedro Domingo Murillo")), "encuentra Plaza Pedro Domingo Murillo");
   const c = await buscar("paceña"), d = await buscar("pacena"), e = await buscar("PACEÑA");
   igual(d, c, "«pacena» = «paceña»"); igual(e, c, "«PACEÑA» = «paceña»");
   cierto(c.includes("Cueca Paceña"), "encuentra Cueca Paceña");
@@ -89,14 +90,14 @@ await caso("PT-08", "Filtro por categoría: solo esa categoría; al limpiarlo vu
   await p.selectOption("select", { label: /Arquitectura religiosa/.source ? undefined : undefined }).catch(() => {});
   const opcion = await p.locator("select option", { hasText: "Arquitectura religiosa" }).first().getAttribute("value");
   await p.selectOption("select", opcion);
-  await p.waitForFunction(() => document.querySelectorAll(".lista .tarjeta").length === 3);
+  await p.waitForFunction(() => document.querySelectorAll(".lista .tarjeta").length === 2);
   const filtrados = await nombres(p);
-  igual(filtrados.sort(), ["Basílica Menor de San Francisco", "Centro Cultural «Museo San Francisco»", "Convento de San Francisco"].sort(), "solo arquitectura religiosa");
-  await esperarMarcadores(p, 3);
+  igual(filtrados.sort(), ["Basílica Menor de San Francisco", "Catedral Metropolitana Nuestra Señora de La Paz"].sort(), "solo arquitectura religiosa");
+  await esperarMarcadores(p, 2);
   await p.screenshot({ path: `${SALIDA}/pt08_filtro_categoria.png` });
   await p.getByRole("button", { name: "Quitar filtros" }).first().click();
   await p.waitForFunction((n) => document.querySelectorAll(".lista .tarjeta").length === n, todos);
-  await esperarMarcadores(p, 6);
+  await esperarMarcadores(p, 10);
   await p.context().close();
 });
 
@@ -104,10 +105,10 @@ await caso("PT-08", "Filtro por categoría: solo esa categoría; al limpiarlo vu
 await caso("PT-09", "Ficha: descripción, categoría, ubicación y fuentes con fecha de consulta", async () => {
   const p = await nuevaPagina();
   await p.goto(BASE); await esperarLista(p);
-  await p.getByRole("link", { name: "Plaza Murillo" }).first().click();
+  await p.getByRole("link", { name: "Casa Museo Pedro Domingo Murillo" }).first().click();
   await p.waitForSelector("article h1");
-  cierto((await p.locator("article h1").innerText()) === "Plaza Murillo", "título");
-  cierto((await p.locator("#t-desc + p").innerText()).includes("Ley N.º 219"), "descripción");
+  cierto((await p.locator("article h1").innerText()) === "Casa Museo Pedro Domingo Murillo", "título");
+  cierto((await p.locator("#t-desc + p").innerText()).includes("Ley Municipal Autónoma N.º 019"), "descripción");
   cierto((await p.locator(".fuentes li").count()) >= 1, "al menos una fuente");
   cierto(/Consultada el \d+ de \w+ de 2026/.test(await p.locator(".fuentes li").first().innerText()), "fecha de consulta visible");
   cierto(await p.locator(".ficha__mapa .mapa").isVisible(), "mapa de la ficha");
@@ -153,7 +154,7 @@ await caso("PT-10", "Distancia: con permiso muestra «a ~X m»; sin permiso el r
   cierto((await sin.locator(".ubicacion__aviso").innerText()).length > 20, "mensaje claro");
   cierto((await sin.locator(".lista .tarjeta").count()) === 10, "la lista sigue completa");
   cierto(!(await sin.locator(".lista").innerText()).includes("a ~"), "sin distancias");
-  await esperarMarcadores(sin, 6);
+  await esperarMarcadores(sin, 10);
   await sin.screenshot({ path: `${SALIDA}/pt10_distancia_sin_permiso.png` });
   await sin.context().close();
 });
@@ -161,11 +162,11 @@ await caso("PT-10", "Distancia: con permiso muestra «a ~X m»; sin permiso el r
 // ---------- PT-11 Bien sin coordenadas
 await caso("PT-11", "Bien sin coordenadas: aparece en la lista sin marcador y la ficha lo indica", async () => {
   const p = await nuevaPagina();
-  await p.goto(BASE); await esperarLista(p); await esperarMarcadores(p, 6);
+  await p.goto(BASE); await esperarLista(p); await esperarMarcadores(p, 10);
   const tarjeta = p.locator(".tarjeta", { hasText: "Cueca Paceña" });
   cierto(await tarjeta.isVisible(), "aparece en la lista");
   cierto((await tarjeta.innerText()).includes("Sin ubicación puntual"), "la tarjeta lo indica");
-  cierto((await p.locator(".mapa__nota").innerText()).includes("4 bienes no tienen ubicación puntual"), "nota bajo el mapa");
+  cierto((await p.locator(".mapa__nota").innerText()).includes("3 bienes no tienen ubicación puntual"), "nota bajo el mapa");
   await tarjeta.getByRole("link").click();
   await p.waitForSelector("article h1");
   cierto((await p.locator("article").innerText()).includes("no tiene una ubicación puntual"), "la ficha lo indica");
@@ -184,7 +185,7 @@ await caso("CU-01-alt", "Si el mapa no carga, la lista sigue disponible; el erro
   await p.screenshot({ path: `${SALIDA}/cu01_mapa_caido_lista_disponible.png` });
   await p.unroute("**/api/bienes/?*page_size=100*");
   await p.locator(".mapa__aviso").getByRole("button", { name: "Reintentar" }).click();
-  await esperarMarcadores(p, 6);
+  await esperarMarcadores(p, 10);
   await p.context().close();
 });
 
@@ -231,15 +232,15 @@ for (const [ancho, alto] of [[360, 740], [768, 1024], [1366, 768]]) {
       cierto(await p.getByRole("button", { name: "Mapa", exact: true }).isVisible(), "pestaña Mapa");
       cierto(await p.locator(".mapa").first().isVisible(), "mapa visible por defecto");
       cierto(!(await p.locator(".explorar__lista").isVisible()), "la lista queda oculta hasta elegirla");
-      await esperarMarcadores(p, 6);
+      await esperarMarcadores(p, 10);
       await p.screenshot({ path: `${SALIDA}/pt24_${ancho}px_mapa.png` });
       await p.getByRole("button", { name: "Lista", exact: true }).click();
       await p.locator(".lista .tarjeta").first().waitFor({ state: "visible" });
       cierto(!(await p.locator(".explorar__mapa").isVisible()), "el mapa se oculta al elegir la lista");
       // «Ver en el mapa» desde la lista vuelve al mapa y abre la vista previa
-      await p.locator(".tarjeta", { hasText: "Plaza Murillo" }).getByRole("button", { name: "Ver en el mapa" }).click();
+      await p.locator(".tarjeta", { hasText: "Casa Museo Pedro Domingo Murillo" }).getByRole("button", { name: "Ver en el mapa" }).click();
       await p.waitForSelector(".vista-previa");
-      cierto((await p.locator(".vista-previa strong").innerText()) === "Plaza Murillo", "abre la vista previa del bien");
+      cierto((await p.locator(".vista-previa strong").innerText()) === "Casa Museo Pedro Domingo Murillo", "abre la vista previa del bien");
       await p.getByRole("button", { name: "Lista", exact: true }).click();
       await p.locator(".explorar__lista").waitFor({ state: "visible" });
       cierto(!(await p.locator(".explorar__mapa").isVisible()), "al volver a Lista el mapa se oculta");
@@ -247,7 +248,7 @@ for (const [ancho, alto] of [[360, 740], [768, 1024], [1366, 768]]) {
     } else {
       cierto(await p.locator(".explorar__lista").isVisible() && await p.locator(".explorar__mapa").isVisible(), "lista y mapa a la vez");
       cierto(!(await p.getByRole("button", { name: "Mapa", exact: true }).isVisible()), "sin pestañas en escritorio");
-      await esperarMarcadores(p, 6);
+      await esperarMarcadores(p, 10);
       await p.screenshot({ path: `${SALIDA}/pt24_${ancho}px.png` });
     }
     // controles accesibles por teclado y con etiqueta
