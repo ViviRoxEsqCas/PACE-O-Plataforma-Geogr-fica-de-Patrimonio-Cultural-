@@ -449,7 +449,7 @@ class ApiTests(TestCase):
 
 
 # ---------------------------------------------------------------------------
-# Catálogo inicial (semana 2: 10 fichas publicadas con fuente)
+# Catálogo inicial (semana 3: 13 fichas publicadas con fuente)
 # ---------------------------------------------------------------------------
 class CargaFichasTests(TestCase):
     def cargar(self, *args):
@@ -457,13 +457,13 @@ class CargaFichasTests(TestCase):
 
         call_command("cargar_fichas_iniciales", *args, stdout=io.StringIO())
 
-    def test_carga_10_fichas_publicadas_y_es_idempotente(self):
+    def test_carga_13_fichas_publicadas_y_es_idempotente(self):
         self.cargar()
         self.cargar()
         self.cargar("--actualizar")
         publicados = BienPatrimonial.objects.filter(estado_publicacion=EstadoPublicacion.PUBLICADO)
-        self.assertEqual(BienPatrimonial.objects.count(), 10)
-        self.assertEqual(publicados.count(), 10)
+        self.assertEqual(BienPatrimonial.objects.count(), 13)
+        self.assertEqual(publicados.count(), 13)
         self.assertEqual(FuenteDocumental.objects.count(), len({f.fuente_id for f in BienFuente.objects.all()}))
 
     def test_todas_las_fichas_cumplen_RN02_y_RN03(self):
@@ -478,11 +478,11 @@ class CargaFichasTests(TestCase):
                 else:
                     self.assertIsNone(bien.latitud)
 
-    def test_la_api_publica_las_10_con_6_marcadores_y_4_sin_ubicacion(self):
+    def test_la_api_publica_las_13_con_10_marcadores_y_3_sin_ubicacion(self):
         self.cargar()
         datos = self.client.get("/api/bienes/?page_size=100").json()
-        self.assertEqual(datos["count"], 10)
-        self.assertEqual(sum(b["tiene_ubicacion"] for b in datos["results"]), 6)
+        self.assertEqual(datos["count"], 13)
+        self.assertEqual(sum(b["tiene_ubicacion"] for b in datos["results"]), 10)
 
     def test_verificar_catalogo_informa_la_falta_de_imagenes_y_lo_exige_con_estricto(self):
         from django.core.management import CommandError, call_command
@@ -491,8 +491,8 @@ class CargaFichasTests(TestCase):
         salida = io.StringIO()
         call_command("verificar_catalogo", stdout=salida)  # sin --estricto no falla
         texto = salida.getvalue()
-        self.assertIn("Fichas publicadas: 10", texto)
-        self.assertIn("fuente con fecha de consulta: 10/10 (100 %)", texto)
+        self.assertIn("Fichas publicadas: 13", texto)
+        self.assertIn("fuente con fecha de consulta: 13/13 (100 %)", texto)
         self.assertIn("CRITERIO NO CUMPLIDO", texto)
         with self.assertRaises(CommandError):
             call_command("verificar_catalogo", "--estricto", stdout=io.StringIO())
@@ -503,3 +503,60 @@ class CargaFichasTests(TestCase):
         salida = io.StringIO()
         call_command("verificar_catalogo", "--estricto", stdout=salida)
         self.assertIn("CRITERIO CUMPLIDO", salida.getvalue())
+
+
+class AjusteA13FichasTests(TestCase):
+    """Paso de la base anterior (10 fichas) al catálogo de 13: renombres, retiro de obsoletas y reportes."""
+
+    def correr(self, *args):
+        from django.core.management import call_command
+
+        salida = io.StringIO()
+        call_command("cargar_fichas_iniciales", *args, stdout=salida)
+        return salida.getvalue()
+
+    def test_renombra_conserva_id_retira_obsoletas_y_protege_reportes(self):
+        from .models import EstadoReporte, ReporteCiudadano, TipoReporte
+
+        plaza = crear_bien("Plaza Murillo")
+        agregar_fuente(plaza, "F-plaza")
+        pepino = crear_bien("El Pepino", tipo="inmaterial", coords=False)
+        agregar_fuente(pepino, "F-pepino")
+        convento = crear_bien("Convento de San Francisco")
+        agregar_fuente(convento, "F-convento")
+        festijazz = crear_bien("La Paz FestiJazz Internacional", tipo="inmaterial", coords=False)
+        agregar_fuente(festijazz, "F-festijazz")
+        for b in (plaza, pepino, convento, festijazz):
+            b.estado_publicacion = EstadoPublicacion.PUBLICADO
+            b.save()
+        ReporteCiudadano.objects.create(
+            bien=convento, tipo_reporte=TipoReporte.objects.first(), estado=EstadoReporte.objects.get(nombre="nuevo"), descripcion="x"
+        )
+
+        aviso = self.correr("--actualizar")  # sin --retirar-obsoletas no se borra nada, pero avisa
+        self.assertIn("--retirar-obsoletas", aviso)
+        self.assertTrue(BienPatrimonial.objects.filter(pk=festijazz.pk).exists())
+
+        self.correr("--actualizar", "--retirar-obsoletas")
+        plaza.refresh_from_db()
+        pepino.refresh_from_db()
+        self.assertEqual(plaza.nombre, "Plaza Pedro Domingo Murillo")        # mismo registro, nuevo nombre
+        self.assertEqual(pepino.nombre, "El Pepino – personaje tradicional del Carnaval Paceño")
+        self.assertFalse(BienPatrimonial.objects.filter(pk=festijazz.pk).exists())   # sin reportes: se elimina
+        convento.refresh_from_db()                                             # con reportes: se conserva, oculto
+        self.assertEqual(convento.estado_publicacion, EstadoPublicacion.DESACTIVADO)
+        publicados = BienPatrimonial.objects.filter(estado_publicacion=EstadoPublicacion.PUBLICADO)
+        self.assertEqual(publicados.count(), 13)
+        self.assertEqual(self.client.get("/api/bienes/?page_size=100").json()["count"], 13)
+        self.assertEqual(self.correr("--actualizar", "--retirar-obsoletas").count("eliminada"), 0)  # idempotente
+
+    def test_nombres_exactos_del_manifiesto_de_imagenes(self):
+        self.correr()
+        esperados = {
+            "Plaza Pedro Domingo Murillo", "Casa Museo Pedro Domingo Murillo", "Calle Jaén – conjunto histórico patrimonial",
+            "Basílica Menor de San Francisco", "Museo Nacional de Etnografía y Folklore (MUSEF)", "Museo Costumbrista Juan de Vargas",
+            "Museo de Metales Preciosos", "Museo del Litoral Boliviano", "Catedral Metropolitana Nuestra Señora de La Paz",
+            "Teatro Municipal Alberto Saavedra Pérez", "Revolución Libertaria del 16 de julio de 1809", "Cueca Paceña",
+            "El Pepino – personaje tradicional del Carnaval Paceño",
+        }
+        self.assertEqual(set(BienPatrimonial.objects.values_list("nombre", flat=True)), esperados)

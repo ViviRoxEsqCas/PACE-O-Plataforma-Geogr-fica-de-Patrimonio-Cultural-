@@ -107,9 +107,9 @@ MEDIA_ROOT = BASE_DIR / "media"
 DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
 
 # --- Django REST Framework ---
-# La API pública no requiere autenticación (sección 8.2). En la semana 1 es de
-# solo lectura; el envío de reportes (POST) y su limitación de frecuencia se
-# añaden en la semana 3.
+# La API pública no requiere autenticación (sección 8.2). Es de lectura, salvo
+# dos POST anónimos: responder actividades y enviar reportes (con límite de
+# frecuencia, RF-17). Sin autenticación de sesión no se exige CSRF en estos POST.
 REST_FRAMEWORK = {
     "DEFAULT_AUTHENTICATION_CLASSES": [],
     "DEFAULT_PERMISSION_CLASSES": ["rest_framework.permissions.AllowAny"],
@@ -117,6 +117,10 @@ REST_FRAMEWORK = {
     + (["rest_framework.renderers.BrowsableAPIRenderer"] if DEBUG else []),
     "DEFAULT_PAGINATION_CLASS": "rest_framework.pagination.PageNumberPagination",
     "PAGE_SIZE": 20,
+    # RF-17: límite de reportes por IP. Formato «N/hour»; se ajusta en .env (REPORTES_LIMITE).
+    "DEFAULT_THROTTLE_RATES": {"reportes": os.getenv("REPORTES_LIMITE", "5/hour")},
+    # Si hay un proxy inverso delante (semana 4), indique cuántos: la IP real viene de X-Forwarded-For.
+    "NUM_PROXIES": int(os.getenv("NUM_PROXIES", "0")) or None,
 }
 
 # --- CORS restringido al origen de la PWA (sección 8.2) ---

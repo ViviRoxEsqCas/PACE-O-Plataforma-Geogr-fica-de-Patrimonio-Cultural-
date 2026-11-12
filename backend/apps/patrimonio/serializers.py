@@ -1,7 +1,18 @@
 """Serialización de la API pública (capa de lógica de aplicación, sección 8.1)."""
 from rest_framework import serializers
 
-from .models import BienPatrimonial, Categoria, FuenteDocumental, RecursoMultimedia
+from .models import (
+    Actividad,
+    BienPatrimonial,
+    Categoria,
+    EstadoPublicacion,
+    EstadoReporte,
+    FuenteDocumental,
+    OpcionActividad,
+    RecursoMultimedia,
+    ReporteCiudadano,
+    TipoReporte,
+)
 
 
 class CategoriaSerializer(serializers.ModelSerializer):
@@ -75,3 +86,52 @@ class BienDetalleSerializer(BienListaSerializer):
 
     class Meta(BienListaSerializer.Meta):
         fields = BienListaSerializer.Meta.fields + ("descripcion", "fuentes", "imagenes")
+
+
+# ---------------------------------------------------------------------------
+# Semana 3: actividades (M3) y reportes (M4)
+# ---------------------------------------------------------------------------
+class OpcionPublicaSerializer(serializers.ModelSerializer):
+    """RN-04: NO incluye `es_correcta`; la respuesta correcta no sale del servidor antes de responder."""
+
+    class Meta:
+        model = OpcionActividad
+        fields = ("id", "texto")
+
+
+class ActividadPublicaSerializer(serializers.ModelSerializer):
+    opciones = OpcionPublicaSerializer(many=True, read_only=True)
+
+    class Meta:
+        model = Actividad
+        fields = ("id", "bien", "enunciado", "puntos", "opciones")
+
+
+class RespuestaSerializer(serializers.Serializer):
+    opcion = serializers.IntegerField(min_value=1)
+
+
+class TipoReporteSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = TipoReporte
+        fields = ("id", "nombre")
+
+
+class ReporteCrearSerializer(serializers.ModelSerializer):
+    """RF-16: bien publicado, tipo válido y descripción de 1 a 500 caracteres. Sin datos de contacto (RNF-03)."""
+
+    bien = serializers.PrimaryKeyRelatedField(
+        queryset=BienPatrimonial.objects.filter(estado_publicacion=EstadoPublicacion.PUBLICADO),
+        error_messages={"does_not_exist": "El bien no existe o no está publicado."},
+    )
+    tipo_reporte = serializers.PrimaryKeyRelatedField(queryset=TipoReporte.objects.all())
+    descripcion = serializers.CharField(max_length=500, trim_whitespace=True)
+
+    class Meta:
+        model = ReporteCiudadano
+        fields = ("id", "bien", "tipo_reporte", "descripcion")
+        read_only_fields = ("id",)
+
+    def create(self, validated_data):
+        validated_data["estado"] = EstadoReporte.objects.get(nombre=EstadoReporte.NUEVO)
+        return super().create(validated_data)

@@ -8,18 +8,26 @@ from django.contrib.admin.models import LogEntry
 from django.contrib.auth.admin import UserAdmin
 from django.contrib.auth.models import Group, User
 from django.core.exceptions import ValidationError
+from django import forms
+from django.forms.models import BaseInlineFormSet
 
 from .models import (
+    Actividad,
     BienFuente,
     BienPatrimonial,
     Categoria,
     EstadoPublicacion,
+    EstadoReporte,
     FuenteDocumental,
     HistorialEstadoBien,
+    HistorialEstadoReporte,
     Licencia,
+    OpcionActividad,
     RecursoMultimedia,
+    ReporteCiudadano,
     TipoFuente,
     TipoPatrimonio,
+    TipoReporte,
     ZonaPiloto,
 )
 
@@ -187,6 +195,161 @@ class HistorialEstadoBienAdmin(admin.ModelAdmin):
 
     def has_delete_permission(self, request, obj=None):
         return False
+
+
+# ---------------------------------------------------------------------------
+# Actividades (M3, RF-13)
+# ---------------------------------------------------------------------------
+class OpcionesFormSet(BaseInlineFormSet):
+    """RN-04: una actividad ACTIVA debe quedar con 2 a 6 opciones y exactamente una correcta."""
+
+    def clean(self):
+        super().clean()
+        if any(self.errors) or not self.instance.activa:
+            return
+        vivas = [f for f in self.forms if f.cleaned_data and not f.cleaned_data.get("DELETE")]
+        correctas = sum(1 for f in vivas if f.cleaned_data.get("es_correcta"))
+        if not (Actividad.MIN_OPCIONES <= len(vivas) <= Actividad.MAX_OPCIONES):
+            raise ValidationError(
+                f"Una actividad activa debe tener entre {Actividad.MIN_OPCIONES} y {Actividad.MAX_OPCIONES} opciones "
+                f"(tiene {len(vivas)}). Para guardarla incompleta, desmarque «activa»."
+            )
+        if correctas != 1:
+            raise ValidationError(
+                f"Debe marcar exactamente una opción como correcta (marcadas: {correctas}). "
+                "Para guardarla incompleta, desmarque «activa»."
+            )
+
+
+class OpcionActividadInline(admin.TabularInline):
+    model = OpcionActividad
+    formset = OpcionesFormSet
+    extra = 4
+    verbose_name = "opción"
+    verbose_name_plural = "opciones (2 a 6; exactamente una correcta)"
+
+
+@admin.register(Actividad)
+class ActividadAdmin(admin.ModelAdmin):
+    list_display = ("enunciado_corto", "bien", "puntos", "activa", "es_valida")
+    list_filter = ("activa", "bien")
+    search_fields = ("enunciado", "bien__nombre")
+    autocomplete_fields = ("bien",)
+    inlines = [OpcionActividadInline]
+
+    @admin.display(description="Pregunta")
+    def enunciado_corto(self, obj):
+        return obj.enunciado[:80]
+
+    @admin.display(boolean=True, description="Opciones válidas")
+    def es_valida(self, obj):
+        return not obj.errores_validez()
+
+
+# ---------------------------------------------------------------------------
+# Reportes ciudadanos (M4, RF-18 y RF-19): la bandeja editorial
+# ---------------------------------------------------------------------------
+class RevisionForm(forms.ModelForm):
+    """Solo el estado (limitado a las transiciones permitidas) y una nota son editables."""
+
+    nota_revision = forms.CharField(
+        label="Nota de la revisión", required=False, max_length=500,
+        widget=forms.Textarea(attrs={"rows": 2}), help_text="Opcional. Queda en el historial junto con su nombre y la fecha.",
+    )
+
+    class Meta:
+        model = ReporteCiudadano
+        fields = ("estado",)
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        actual = self.instance.estado if self.instance.pk else None
+        if actual is not None:
+            permitidos = (actual.nombre,) + ReporteCiudadano.destinos_permitidos(actual.nombre)
+            self.fields["estado"].queryset = EstadoReporte.objects.filter(nombre__in=permitidos)
+            if actual.es_final:
+                self.fields["estado"].disabled = True
+                self.fields["nota_revision"].disabled = True
+
+
+class HistorialReporteInline(admin.TabularInline):
+    model = HistorialEstadoReporte
+    extra = 0
+    can_delete = False
+    fields = ("fecha", "estado_anterior", "estado_nuevo", "revisado_por", "nota")
+    readonly_fields = fields
+
+    def has_add_permission(self, request, obj=None):
+        return False
+
+    def has_change_permission(self, request, obj=None):
+        return False
+
+
+@admin.register(ReporteCiudadano)
+class ReporteCiudadanoAdmin(admin.ModelAdmin):
+    form = RevisionForm
+    list_display = ("id", "bien", "tipo_reporte", "resumen", "estado", "fecha_creacion")
+    list_filter = ("estado", "tipo_reporte")
+    search_fields = ("descripcion", "bien__nombre")
+    list_select_related = ("bien", "tipo_reporte", "estado")
+    date_hierarchy = "fecha_creacion"
+    inlines = [HistorialReporteInline]
+    actions = ["marcar_en_revision", "marcar_atendido", "marcar_descartado"]
+    fields = ("bien", "tipo_reporte", "descripcion", "fecha_creacion", "estado", "nota_revision")
+    readonly_fields = ("bien", "tipo_reporte", "descripcion", "fecha_creacion")
+
+    @admin.display(description="Descripción")
+    def resumen(self, obj):
+        return obj.descripcion[:70]
+
+    def has_add_permission(self, request):
+        return False  # los reportes los envía el público por la API
+
+    def has_delete_permission(self, request, obj=None):
+        return False  # se conservan para trazabilidad: se descartan, no se borran
+
+    def save_model(self, request, obj, form, change):
+        nuevo = form.cleaned_data["estado"]
+        anterior = ReporteCiudadano.objects.select_related("estado").get(pk=obj.pk).estado
+        if nuevo.pk == anterior.pk:
+            return
+        obj.estado = anterior  # cambiar_estado valida la transición desde el estado guardado
+        try:
+            obj.cambiar_estado(nuevo, request.user, form.cleaned_data.get("nota_revision", ""))
+        except ValidationError as e:
+            messages.error(request, " ".join(e.messages))
+
+    # -- Acciones masivas ----------------------------------------------------
+    def _transicion(self, request, queryset, nombre):
+        destino = EstadoReporte.objects.get(nombre=nombre)
+        hechos = 0
+        for reporte in queryset.select_related("estado"):
+            try:
+                reporte.cambiar_estado(destino, request.user)
+            except ValidationError as e:
+                messages.warning(request, f"Reporte #{reporte.pk}: " + " ".join(e.messages))
+            else:
+                hechos += 1
+        if hechos:
+            messages.success(request, f"{hechos} reporte(s) pasaron a «{nombre}».")
+
+    @admin.action(description="Pasar a «en revisión»")
+    def marcar_en_revision(self, request, queryset):
+        self._transicion(request, queryset, EstadoReporte.EN_REVISION)
+
+    @admin.action(description="Marcar como «atendido»")
+    def marcar_atendido(self, request, queryset):
+        self._transicion(request, queryset, EstadoReporte.ATENDIDO)
+
+    @admin.action(description="Marcar como «descartado»")
+    def marcar_descartado(self, request, queryset):
+        self._transicion(request, queryset, EstadoReporte.DESCARTADO)
+
+
+@admin.register(TipoReporte)
+class TipoReporteAdmin(admin.ModelAdmin):
+    list_display = ("nombre",)
 
 
 # ---------------------------------------------------------------------------

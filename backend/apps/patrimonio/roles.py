@@ -23,12 +23,21 @@ PERMISOS_EDITOR = {
     "patrimonio.tipopatrimonio": ("view",),
     "patrimonio.zonapiloto": ("view",),
     "patrimonio.historialestadobien": ("view",),
+    # Semana 3. Actividades: el Editor las gestiona (RF-13). Reportes: solo revisa y cambia el estado;
+    # no los crea ni los borra (los envía el público) y el historial es solo lectura (RF-18, RF-19).
+    "patrimonio.actividad": ("view", "add", "change", "delete"),
+    "patrimonio.opcionactividad": ("view", "add", "change", "delete"),
+    "patrimonio.reporteciudadano": ("view", "change"),
+    "patrimonio.historialestadoreporte": ("view",),
+    "patrimonio.tiporeporte": ("view",),
+    "patrimonio.estadoreporte": ("view",),
 }
 
 # Acciones adicionales exclusivas del Administrador (el resto lo hereda del Editor)
 PERMISOS_ADMINISTRADOR_EXTRA = {
     "patrimonio.tipopatrimonio": ("add", "change"),
     "patrimonio.zonapiloto": ("add", "change"),
+    "patrimonio.tiporeporte": ("add", "change"),
     "auth.user": ("view", "add", "change"),  # las cuentas se desactivan, no se borran
     "auth.group": ("view",),  # asigna grupos a cuentas, pero no edita sus permisos
     "admin.logentry": ("view",),  # historial de cambios del panel (RF-23)

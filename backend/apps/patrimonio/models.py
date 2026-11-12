@@ -477,6 +477,22 @@ class Actividad(models.Model):
     def __str__(self):
         return self.enunciado[:60]
 
+    MIN_OPCIONES = 2
+    MAX_OPCIONES = 6
+
+    def errores_validez(self) -> list[str]:
+        """RN-04: una actividad activa necesita 2 a 6 opciones y exactamente una correcta."""
+        if self.pk is None:
+            return ["Guarde primero la actividad para poder validar sus opciones."]
+        opciones = list(self.opciones.all())
+        correctas = sum(1 for o in opciones if o.es_correcta)
+        errores = []
+        if not (self.MIN_OPCIONES <= len(opciones) <= self.MAX_OPCIONES):
+            errores.append(f"Debe tener entre {self.MIN_OPCIONES} y {self.MAX_OPCIONES} opciones (tiene {len(opciones)}).")
+        if correctas != 1:
+            errores.append(f"Debe tener exactamente una opción correcta (tiene {correctas}).")
+        return errores
+
 
 class OpcionActividad(models.Model):
     actividad = models.ForeignKey(Actividad, on_delete=models.CASCADE, related_name="opciones")
@@ -520,6 +536,38 @@ class ReporteCiudadano(models.Model):
 
     def __str__(self):
         return f"Reporte #{self.pk} sobre {self.bien}"
+
+    # RN-06: nuevo → en revisión | descartado; en revisión → atendido | descartado.
+    # «atendido» y «descartado» son finales: no se modifican.
+    TRANSICIONES = {
+        EstadoReporte.NUEVO: (EstadoReporte.EN_REVISION, EstadoReporte.DESCARTADO),
+        EstadoReporte.EN_REVISION: (EstadoReporte.ATENDIDO, EstadoReporte.DESCARTADO),
+        EstadoReporte.ATENDIDO: (),
+        EstadoReporte.DESCARTADO: (),
+    }
+
+    @classmethod
+    def destinos_permitidos(cls, estado_nombre: str) -> tuple[str, ...]:
+        return cls.TRANSICIONES.get(estado_nombre, ())
+
+    def cambiar_estado(self, nuevo: "EstadoReporte", usuario, nota: str = ""):
+        """Aplica una transición válida y deja constancia de revisor, fecha y nota (RF-18, RF-19)."""
+        if usuario is None or not getattr(usuario, "pk", None):
+            raise ValidationError("Todo cambio de estado requiere un revisor identificado.")
+        anterior = self.estado
+        if nuevo.nombre not in self.destinos_permitidos(anterior.nombre):
+            raise ValidationError(
+                f"Transición no permitida: «{anterior.nombre}» → «{nuevo.nombre}»."
+                if self.destinos_permitidos(anterior.nombre)
+                else f"El reporte está «{anterior.nombre}» (estado final) y no puede modificarse."
+            )
+        with transaction.atomic():
+            self.estado = nuevo
+            self.save(update_fields=["estado"])
+            HistorialEstadoReporte.objects.create(
+                reporte=self, estado_anterior=anterior, estado_nuevo=nuevo,
+                revisado_por=usuario, nota=(nota or "").strip()[:500],
+            )
 
 
 class HistorialEstadoReporte(models.Model):
