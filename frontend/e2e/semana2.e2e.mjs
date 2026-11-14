@@ -1,4 +1,5 @@
 // Verificación de extremo a extremo de la semana 2 (PT-06 a PT-11 y PT-24) con un navegador real.
+// Rutas: «/» es la portada; el mapa y la lista viven en «/explorar».
 // Requisitos: backend en :8000 con las fichas cargadas, frontend en :5173 y el paquete "playwright"
 // (npm i -D playwright && npx playwright install chromium). Uso: node e2e/semana2.e2e.mjs
 import { mkdirSync, writeFileSync } from "node:fs";
@@ -7,6 +8,7 @@ const require = createRequire(import.meta.url);
 const { chromium } = require("playwright");
 
 const BASE = process.env.PACENO_URL ?? "http://127.0.0.1:5173";
+const EXPLORAR = `${BASE}/explorar`;
 const SALIDA = process.env.PACENO_EVIDENCIAS ?? "../docs/evidencias/semana2";
 mkdirSync(SALIDA, { recursive: true });
 
@@ -29,7 +31,7 @@ async function nuevaPagina(opciones = {}) {
   const contexto = await navegador.newContext({ viewport: { width: 1366, height: 768 }, locale: "es-BO", ...opciones });
   const pagina = await contexto.newPage();
   // El entorno de pruebas no tiene salida a internet: las teselas de OpenStreetMap se cortan para no esperar.
-  await pagina.route("**/tile.openstreetmap.org/**", (r) => r.abort());
+  await pagina.route(/tile\.openstreetmap\.org|cartocdn\.com/, (r) => r.abort());
   pagina.peticiones = [];
   pagina.on("request", (r) => pagina.peticiones.push({ url: r.url(), metodo: r.method() }));
   return pagina;
@@ -42,7 +44,7 @@ async function esperarMarcadores(p, n) { await p.waitForFunction((n) => document
 // ---------- PT-06 Mapa
 await caso("PT-06", "Mapa: un marcador por bien con coordenadas; abre vista previa y la ficha", async () => {
   const p = await nuevaPagina();
-  await p.goto(BASE); await esperarLista(p);
+  await p.goto(EXPLORAR); await esperarLista(p);
   await esperarMarcadores(p, 10);
   const bienesConUbicacion = (await (await p.request.get(`${BASE}/api/bienes/?page_size=100`)).json()).results.filter((b) => b.tiene_ubicacion).length;
   igual(await p.locator(".marcador").count(), bienesConUbicacion, "marcadores = bienes con coordenadas");
@@ -50,7 +52,7 @@ await caso("PT-06", "Mapa: un marcador por bien con coordenadas; abre vista prev
   await p.locator(".marcador").first().click();
   await p.waitForSelector(".vista-previa");
   const titulo = await p.locator(".vista-previa strong").innerText();
-  await p.locator(".vista-previa button", { hasText: "Ver ficha" }).click();
+  await p.locator(".vista-previa button", { hasText: "Abrir ficha" }).click();
   await p.waitForSelector("article h1");
   igual(await p.locator("article h1").innerText(), titulo, "la ficha abierta es la del marcador");
   cierto(/\/bienes\/\d+$/.test(p.url()), "la URL apunta a la ficha");
@@ -60,7 +62,7 @@ await caso("PT-06", "Mapa: un marcador por bien con coordenadas; abre vista prev
 // ---------- PT-07 Búsqueda
 await caso("PT-07", "Búsqueda: «plaza», «PLAZA» y nombre con tilde dan resultados equivalentes", async () => {
   const p = await nuevaPagina();
-  await p.goto(BASE); await esperarLista(p);
+  await p.goto(EXPLORAR); await esperarLista(p);
   const buscar = async (texto) => {
     // Se espera la respuesta real de la API para esa búsqueda y luego a que la lista refleje su contenido.
     const respuesta = p.waitForResponse((r) => r.url().includes("/api/bienes/") && r.url().includes("page_size=10") && r.url().includes(`q=${encodeURIComponent(texto.trim())}`));
@@ -85,11 +87,9 @@ await caso("PT-07", "Búsqueda: «plaza», «PLAZA» y nombre con tilde dan resu
 // ---------- PT-08 Filtro
 await caso("PT-08", "Filtro por categoría: solo esa categoría; al limpiarlo vuelven todas", async () => {
   const p = await nuevaPagina();
-  await p.goto(BASE); await esperarLista(p);
+  await p.goto(EXPLORAR); await esperarLista(p);
   const todos = (await nombres(p)).length;
-  await p.selectOption("select", { label: /Arquitectura religiosa/.source ? undefined : undefined }).catch(() => {});
-  const opcion = await p.locator("select option", { hasText: "Arquitectura religiosa" }).first().getAttribute("value");
-  await p.selectOption("select", opcion);
+  await p.getByRole("button", { name: /Arquitectura religiosa/ }).click();
   await p.waitForFunction(() => document.querySelectorAll(".lista .tarjeta").length === 2);
   const filtrados = await nombres(p);
   igual(filtrados.sort(), ["Basílica Menor de San Francisco", "Catedral Metropolitana Nuestra Señora de La Paz"].sort(), "solo arquitectura religiosa");
@@ -104,7 +104,7 @@ await caso("PT-08", "Filtro por categoría: solo esa categoría; al limpiarlo vu
 // ---------- PT-09 Ficha
 await caso("PT-09", "Ficha: descripción, categoría, ubicación y fuentes con fecha de consulta", async () => {
   const p = await nuevaPagina();
-  await p.goto(BASE); await esperarLista(p);
+  await p.goto(EXPLORAR); await esperarLista(p);
   await p.getByRole("link", { name: "Casa Museo Pedro Domingo Murillo" }).first().click();
   await p.waitForSelector("article h1");
   cierto((await p.locator("article h1").innerText()) === "Casa Museo Pedro Domingo Murillo", "título");
@@ -136,7 +136,7 @@ await caso("PT-09b", "Ficha: las imágenes muestran autor y licencia (respuesta 
 // ---------- PT-10 Distancia
 await caso("PT-10", "Distancia: con permiso muestra «a ~X m»; sin permiso el resto funciona; no se envía la posición", async () => {
   const con = await nuevaPagina({ permissions: ["geolocation"], geolocation: { latitude: -16.4956, longitude: -68.1336 } });
-  await con.goto(BASE); await esperarLista(con);
+  await con.goto(EXPLORAR); await esperarLista(con);
   cierto(!(await con.locator(".lista").innerText()).includes("a ~"), "sin pedir permiso no hay distancias");
   await con.getByRole("button", { name: "Ver distancia a cada bien" }).click();
   await con.waitForFunction(() => document.querySelector(".lista")?.innerText.includes("a ~"));
@@ -148,7 +148,7 @@ await caso("PT-10", "Distancia: con permiso muestra «a ~X m»; sin permiso el r
   await con.context().close();
 
   const sin = await nuevaPagina(); // sin permiso concedido → el navegador deniega
-  await sin.goto(BASE); await esperarLista(sin);
+  await sin.goto(EXPLORAR); await esperarLista(sin);
   await sin.getByRole("button", { name: "Ver distancia a cada bien" }).click();
   await sin.waitForSelector(".ubicacion__aviso");
   cierto((await sin.locator(".ubicacion__aviso").innerText()).length > 20, "mensaje claro");
@@ -162,7 +162,7 @@ await caso("PT-10", "Distancia: con permiso muestra «a ~X m»; sin permiso el r
 // ---------- PT-11 Bien sin coordenadas
 await caso("PT-11", "Bien sin coordenadas: aparece en la lista sin marcador y la ficha lo indica", async () => {
   const p = await nuevaPagina();
-  await p.goto(BASE); await esperarLista(p); await esperarMarcadores(p, 10);
+  await p.goto(EXPLORAR); await esperarLista(p); await esperarMarcadores(p, 10);
   const tarjeta = p.locator(".tarjeta", { hasText: "Cueca Paceña" });
   cierto(await tarjeta.isVisible(), "aparece en la lista");
   cierto((await tarjeta.innerText()).includes("Sin ubicación puntual"), "la tarjeta lo indica");
@@ -178,7 +178,7 @@ await caso("PT-11", "Bien sin coordenadas: aparece en la lista sin marcador y la
 await caso("CU-01-alt", "Si el mapa no carga, la lista sigue disponible; el error se puede reintentar", async () => {
   const p = await nuevaPagina();
   await p.route("**/api/bienes/?*page_size=100*", (r) => r.abort());
-  await p.goto(BASE); await esperarLista(p);
+  await p.goto(EXPLORAR); await esperarLista(p);
   await p.waitForSelector(".mapa__aviso");
   cierto((await p.locator(".lista .tarjeta").count()) === 10, "lista completa");
   cierto((await p.locator(".mapa__aviso").innerText()).includes("No se pudo conectar"), "mensaje claro");
@@ -192,7 +192,7 @@ await caso("CU-01-alt", "Si el mapa no carga, la lista sigue disponible; el erro
 await caso("ERR-red", "Sin servidor: mensaje claro con «Reintentar»; se recupera al volver", async () => {
   const p = await nuevaPagina();
   await p.route("**/api/**", (r) => r.abort());
-  await p.goto(BASE);
+  await p.goto(EXPLORAR);
   await p.waitForSelector(".estado--error");
   await p.unroute("**/api/**");
   await p.locator(".explorar__lista").getByRole("button", { name: "Reintentar" }).click();
@@ -209,9 +209,9 @@ await caso("ERR-404", "Ficha inexistente o no publicada: mensaje y salida", asyn
 
 await caso("URL", "Búsqueda, filtro y página viven en la URL: «atrás» desde la ficha conserva el estado", async () => {
   const p = await nuevaPagina();
-  await p.goto(`${BASE}/?q=san&vista=lista`); await esperarLista(p);
+  await p.goto(`${BASE}/explorar?q=san`); await esperarLista(p);
   const antes = await nombres(p);
-  await p.getByRole("link", { name: antes[0] }).click();
+  await p.locator(".lista").getByRole("link", { name: antes[0] }).click();
   await p.waitForSelector("article h1");
   await p.getByRole("button", { name: /Volver a explorar/ }).click();
   await esperarLista(p);
@@ -224,35 +224,27 @@ await caso("URL", "Búsqueda, filtro y página viven en la URL: «atrás» desde
 for (const [ancho, alto] of [[360, 740], [768, 1024], [1366, 768]]) {
   await caso("PT-24", `Adaptación a ${ancho} px: sin desbordes y con todas las funciones`, async () => {
     const p = await nuevaPagina({ viewport: { width: ancho, height: alto } });
-    await p.goto(BASE); await esperarLista(p);
+    await p.goto(EXPLORAR); await esperarLista(p);
     const desborde = await p.evaluate(() => document.documentElement.scrollWidth - window.innerWidth);
     cierto(desborde <= 0, `desborde horizontal de ${desborde}px`);
     const escritorio = ancho >= 900;
     if (!escritorio) {
-      cierto(await p.getByRole("button", { name: "Mapa", exact: true }).isVisible(), "pestaña Mapa");
-      cierto(await p.locator(".mapa").first().isVisible(), "mapa visible por defecto");
-      cierto(!(await p.locator(".explorar__lista").isVisible()), "la lista queda oculta hasta elegirla");
+      // El diseño apila mapa, tarjetas y panel lateral: todo es visible sin pestañas.
+      cierto(await p.locator(".mapa").first().isVisible() && await p.locator(".lista .tarjeta").first().isVisible(), "mapa y tarjetas visibles");
+      cierto((await p.getByRole("button", { name: "Lista", exact: true }).count()) === 0, "sin pestañas");
       await esperarMarcadores(p, 10);
-      await p.screenshot({ path: `${SALIDA}/pt24_${ancho}px_mapa.png` });
-      await p.getByRole("button", { name: "Lista", exact: true }).click();
-      await p.locator(".lista .tarjeta").first().waitFor({ state: "visible" });
-      cierto(!(await p.locator(".explorar__mapa").isVisible()), "el mapa se oculta al elegir la lista");
-      // «Ver en el mapa» desde la lista vuelve al mapa y abre la vista previa
-      await p.locator(".tarjeta", { hasText: "Casa Museo Pedro Domingo Murillo" }).getByRole("button", { name: "Ver en el mapa" }).click();
+      // El acceso rápido del panel lateral enfoca el bien en el mapa y abre su vista previa
+      await p.locator(".sidebar-site-item__name", { hasText: "Casa Museo Pedro Domingo Murillo" }).click();
       await p.waitForSelector(".vista-previa");
       cierto((await p.locator(".vista-previa strong").innerText()) === "Casa Museo Pedro Domingo Murillo", "abre la vista previa del bien");
-      await p.getByRole("button", { name: "Lista", exact: true }).click();
-      await p.locator(".explorar__lista").waitFor({ state: "visible" });
-      cierto(!(await p.locator(".explorar__mapa").isVisible()), "al volver a Lista el mapa se oculta");
-      await p.screenshot({ path: `${SALIDA}/pt24_${ancho}px_lista.png` });
+      await p.screenshot({ path: `${SALIDA}/pt24_${ancho}px_lista.png`, fullPage: true });
     } else {
       cierto(await p.locator(".explorar__lista").isVisible() && await p.locator(".explorar__mapa").isVisible(), "lista y mapa a la vez");
-      cierto(!(await p.getByRole("button", { name: "Mapa", exact: true }).isVisible()), "sin pestañas en escritorio");
       await esperarMarcadores(p, 10);
       await p.screenshot({ path: `${SALIDA}/pt24_${ancho}px.png` });
     }
     // controles accesibles por teclado y con etiqueta
-    cierto((await p.getByLabel("Buscar por nombre").count()) === 1 && (await p.getByLabel("Categoría").count()) === 1, "controles etiquetados");
+    cierto((await p.getByLabel("Buscar por nombre").count()) === 1 && (await p.getByRole("group", { name: /categorías/i }).count()) === 1, "controles etiquetados");
     // ficha sin desbordes
     await p.goto(`${BASE}/bienes/1`); await p.waitForSelector("article h1"); await p.waitForLoadState("networkidle");
     cierto((await p.evaluate(() => document.documentElement.scrollWidth - window.innerWidth)) <= 0, "ficha sin desborde");

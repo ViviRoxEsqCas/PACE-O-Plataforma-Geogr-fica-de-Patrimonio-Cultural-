@@ -71,6 +71,17 @@ export async function listarMarcadores({ q, categoria } = {}, signal) {
   return { total, marcadores };
 }
 
+/** Catálogo completo de bienes publicados (todas las páginas). Alimenta Inicio, Rutas, el pie y la navegación entre fichas. */
+export async function listarCatalogo(signal) {
+  const bienes = [];
+  for (let pagina = 1; ; pagina += 1) {
+    const datos = await pedir("/api/bienes/", { page: pagina, page_size: TAMANO_MAXIMO }, signal);
+    bienes.push(...datos.results);
+    if (!datos.next) break;
+  }
+  return bienes;
+}
+
 export const obtenerBien = (id, signal) => pedir(`/api/bienes/${encodeURIComponent(id)}/`, null, signal);
 export const listarCategorias = (signal) => pedir("/api/categorias/", null, signal);
 

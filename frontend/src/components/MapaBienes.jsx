@@ -2,39 +2,44 @@ import L from "leaflet";
 import "leaflet/dist/leaflet.css";
 import { useEffect, useRef } from "react";
 import { distanciaA, formatearDistancia } from "../lib/distancia";
+import { nombreTipo } from "../lib/bienes";
 
-// Centro del área piloto (plaza Murillo / San Francisco); se usa si aún no hay marcadores.
-const CENTRO_PILOTO = [-16.4956, -68.1345];
-const ATRIBUCION = '© <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener noreferrer">Colaboradores de OpenStreetMap</a>';
+// Vista inicial del diseño de referencia (centro de La Paz); luego se encuadran los marcadores.
+const CENTRO = [-16.4975, -68.1335];
+const ZOOM = 14;
+const TESELAS = "https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png";
+const ATRIBUCION = '© <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener noreferrer">Colaboradores de OpenStreetMap</a> © <a href="https://carto.com/attributions" target="_blank" rel="noopener noreferrer">CARTO</a> · PACEÑO';
 
-// Marcador con forma de corazón (motivo de la marca): se reconoce por la forma, no solo por el color.
-const ICONO = L.divIcon({
-  className: "marcador",
-  html: '<svg viewBox="0 0 32 32" width="34" height="34" aria-hidden="true" focusable="false"><path d="M16 29S3.5 21.2 3.5 12.4c0-4 3-6.9 6.7-6.9 2.4 0 4.6 1.3 5.8 3.4 1.2-2.1 3.4-3.4 5.8-3.4 3.7 0 6.7 2.9 6.7 6.9C28.5 21.2 16 29 16 29z" fill="#7b3b3a" stroke="#fff" stroke-width="2"/></svg>',
-  iconSize: [34, 34],
-  iconAnchor: [17, 31],
-  popupAnchor: [0, -28],
-});
+/** Pin numerado del diseño. `texto` es el número del marcador (o ★ en la ficha). */
+function iconoPin(texto, seleccionado) {
+  return L.divIcon({
+    className: "marcador paceno-pin-wrapper",
+    html: `<div class="paceno-pin${seleccionado ? " is-selected" : ""}"><span class="paceno-pin__inner">${texto}</span></div>`,
+    iconSize: [34, 34],
+    iconAnchor: [17, 34],
+    popupAnchor: [0, -34],
+  });
+}
 
 function contenidoVistaPrevia(bien, posicion, onAbrir) {
   const caja = document.createElement("div");
-  caja.className = "vista-previa";
+  caja.className = "map-popup-card vista-previa";
+  const categoria = document.createElement("span");
+  categoria.className = "map-popup-card__cat";
+  categoria.textContent = bien.categoria.nombre;
   const titulo = document.createElement("strong");
+  titulo.className = "map-popup-card__title";
   titulo.textContent = bien.nombre;
   const meta = document.createElement("span");
-  meta.textContent = `${bien.tipo === "material" ? "Material" : "Inmaterial"} · ${bien.categoria.nombre}`;
-  caja.append(titulo, meta);
+  meta.className = "map-popup-card__zone";
   const distancia = formatearDistancia(distanciaA(bien, posicion));
-  if (distancia) {
-    const d = document.createElement("span");
-    d.textContent = distancia;
-    caja.append(d);
-  }
+  meta.textContent = [`Patrimonio ${nombreTipo(bien.tipo).toLowerCase()}`, distancia].filter(Boolean).join(" · ");
+  caja.append(categoria, titulo, meta);
   if (onAbrir) {
     const boton = document.createElement("button");
     boton.type = "button";
-    boton.className = "boton boton--primario";
-    boton.textContent = "Ver ficha";
+    boton.className = "map-popup-card__cta";
+    boton.textContent = "Abrir ficha patrimonial →";
     boton.addEventListener("click", () => onAbrir(bien.id));
     caja.append(boton);
   }
@@ -42,36 +47,49 @@ function contenidoVistaPrevia(bien, posicion, onAbrir) {
 }
 
 /**
- * Mapa Leaflet con un marcador por bien con coordenadas (RF-07).
- * Props: bienes (con latitud/longitud), seleccionado (id a destacar), posicion ({lat,lon} | null),
- * visible (recalcula el tamaño al mostrarse), onAbrir(id), altura opcional por CSS.
+ * Mapa Leaflet con un pin numerado por bien con coordenadas (RF-07).
+ * bienes: con latitud/longitud · foco: { id, volar } del bien a destacar (objeto nuevo en cada petición)
+ * posicion: { lat, lon } | null · reinicio: número que, al cambiar, restablece la vista
+ * onAbrir(id) abre la ficha · onSeleccionar(id) avisa del pin pulsado · ficha: versión de un solo bien (★, sin vista previa).
  */
-export default function MapaBienes({ bienes, seleccionado, posicion, visible = true, onAbrir, etiqueta = "Mapa de bienes patrimoniales" }) {
+export default function MapaBienes({ bienes, foco, posicion, onAbrir, onSeleccionar, reinicio = 0, ficha = false, className = "", etiqueta = "Mapa de bienes patrimoniales" }) {
   const contenedor = useRef(null);
   const mapa = useRef(null);
   const capa = useRef(null);
   const capaPosicion = useRef(null);
-  const marcadores = useRef(new Map());
+  const marcadores = useRef(new Map()); // id → { marcador, numero }
   const abrirRef = useRef(onAbrir);
   abrirRef.current = onAbrir;
+  const seleccionarRef = useRef(onSeleccionar);
+  seleccionarRef.current = onSeleccionar;
+  const bienesRef = useRef(bienes);
+  bienesRef.current = bienes;
   const encuadrado = useRef("");
+  const focoAplicado = useRef(null);
+
+  const encuadrar = () => {
+    const puntos = bienesRef.current.filter((b) => b.tiene_ubicacion).map((b) => [b.latitud, b.longitud]);
+    if (puntos.length > 1) mapa.current.fitBounds(L.latLngBounds(puntos), { padding: [40, 40], maxZoom: 17 });
+    else if (puntos.length === 1) mapa.current.setView(puntos[0], 16);
+    else mapa.current.setView(CENTRO, ZOOM);
+  };
 
   useEffect(() => {
-    const instancia = L.map(contenedor.current, { zoomControl: false, attributionControl: true }).setView(CENTRO_PILOTO, 15);
-    L.control.zoom({ zoomInTitle: "Acercar", zoomOutTitle: "Alejar" }).addTo(instancia);
-    L.tileLayer("https://tile.openstreetmap.org/{z}/{x}/{y}.png", { maxZoom: 19, attribution: ATRIBUCION }).addTo(instancia);
+    const instancia = L.map(contenedor.current, { zoomControl: false, attributionControl: true, scrollWheelZoom: false }).setView(CENTRO, ZOOM);
+    L.control.zoom({ position: "bottomright", zoomInTitle: "Acercar", zoomOutTitle: "Alejar" }).addTo(instancia);
+    L.tileLayer(TESELAS, { maxZoom: 19, attribution: ATRIBUCION }).addTo(instancia);
     capa.current = L.layerGroup().addTo(instancia);
     capaPosicion.current = L.layerGroup().addTo(instancia);
     mapa.current = instancia;
+    // El diseño reacomoda el mapa al cambiar de ancho (tablet/móvil) o al cargar las tipografías.
+    const observador = typeof ResizeObserver === "function" ? new ResizeObserver(() => instancia.invalidateSize()) : null;
+    observador?.observe(contenedor.current);
     return () => {
+      observador?.disconnect();
       instancia.remove();
       mapa.current = null;
     };
   }, []);
-
-  useEffect(() => {
-    if (visible) setTimeout(() => mapa.current?.invalidateSize(), 0);
-  }, [visible]);
 
   // Marcadores
   useEffect(() => {
@@ -79,43 +97,62 @@ export default function MapaBienes({ bienes, seleccionado, posicion, visible = t
     if (!instancia) return;
     capa.current.clearLayers();
     marcadores.current.clear();
+    let numero = 0;
     for (const bien of bienes) {
       if (!bien.tiene_ubicacion) continue;
-      const marcador = L.marker([bien.latitud, bien.longitud], { icon: ICONO, title: bien.nombre, keyboard: true });
-      marcador.bindPopup(() => contenidoVistaPrevia(bien, posicion, abrirRef.current && ((id) => abrirRef.current(id))), { closeButton: true });
-      marcador.on("add", () => marcador.getElement()?.setAttribute("aria-label", `${bien.nombre}. Abrir vista previa`));
+      numero += 1;
+      const texto = ficha ? "★" : String(numero).padStart(2, "0");
+      const marcador = L.marker([bien.latitud, bien.longitud], { icon: iconoPin(texto, ficha || foco?.id === bien.id), title: bien.nombre, keyboard: true });
+      if (!ficha) {
+        marcador.bindPopup(() => contenidoVistaPrevia(bien, posicion, abrirRef.current && ((id) => abrirRef.current(id))), { closeButton: true });
+        marcador.on("click", () => seleccionarRef.current?.(bien.id));
+      }
+      marcador.on("add", () => marcador.getElement()?.setAttribute("aria-label", ficha ? `Ubicación de ${bien.nombre}` : `${bien.nombre}. Abrir vista previa`));
       marcador.addTo(capa.current);
-      marcadores.current.set(bien.id, marcador);
+      marcadores.current.set(bien.id, { marcador, texto });
     }
     // Encuadra solo cuando cambia el conjunto de bienes, no cada vez que llega la posición.
     const clave = bienes.map((b) => b.id).join(",");
     if (clave !== encuadrado.current) {
       encuadrado.current = clave;
-      const puntos = bienes.filter((b) => b.tiene_ubicacion).map((b) => [b.latitud, b.longitud]);
-      if (puntos.length > 1) instancia.fitBounds(L.latLngBounds(puntos), { padding: [40, 40], maxZoom: 17 });
-      else if (puntos.length === 1) instancia.setView(puntos[0], 17);
+      encuadrar();
     }
-  }, [bienes, posicion]);
+  }, [bienes, posicion]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Posición de la persona (solo si la concedió)
   useEffect(() => {
     capaPosicion.current?.clearLayers();
     if (posicion) {
-      L.circleMarker([posicion.lat, posicion.lon], { radius: 8, color: "#fff", weight: 3, fillColor: "#1f6f6b", fillOpacity: 1 })
+      L.circleMarker([posicion.lat, posicion.lon], { radius: 8, color: "#fff", weight: 3, fillColor: "#c8161d", fillOpacity: 1 })
         .bindTooltip("Tu ubicación aproximada")
         .addTo(capaPosicion.current);
     }
   }, [posicion]);
 
-  // Abrir la vista previa del bien seleccionado desde la lista
+  // Pin seleccionado en rojo (el diseño marca el pin activo)
   useEffect(() => {
-    if (seleccionado == null) return;
-    const marcador = marcadores.current.get(seleccionado);
-    if (marcador && mapa.current) {
-      mapa.current.setView(marcador.getLatLng(), Math.max(mapa.current.getZoom(), 16));
-      marcador.openPopup();
-    }
-  }, [seleccionado]);
+    if (ficha) return;
+    for (const [id, { marcador }] of marcadores.current) marcador.getElement()?.querySelector(".paceno-pin")?.classList.toggle("is-selected", id === foco?.id);
+  }, [foco, bienes, ficha]);
 
-  return <div ref={contenedor} className="mapa" role="region" aria-label={etiqueta} />;
+  // Abrir la vista previa del bien enfocado desde la lista lateral, las tarjetas o la URL
+  useEffect(() => {
+    if (!foco || focoAplicado.current === foco) return;
+    const entrada = marcadores.current.get(foco.id);
+    if (!entrada || !mapa.current) return;
+    focoAplicado.current = foco;
+    if (foco.volar) mapa.current.flyTo(entrada.marcador.getLatLng(), Math.max(mapa.current.getZoom(), 16), { duration: 0.75 });
+    entrada.marcador.openPopup();
+  }, [foco, bienes]);
+
+  // «Restablecer vista»
+  const reinicioPrevio = useRef(reinicio);
+  useEffect(() => {
+    if (reinicioPrevio.current === reinicio) return;
+    reinicioPrevio.current = reinicio;
+    mapa.current?.closePopup();
+    encuadrar();
+  }, [reinicio]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  return <div ref={contenedor} className={`mapa ${className}`.trim()} role="region" aria-label={etiqueta} />;
 }

@@ -45,7 +45,7 @@ function Actividad({ actividad, alCambiarPuntaje }) {
       </fieldset>
       {error && <ErrorCarga error={error} />}
       {!resultado && (
-        <button type="submit" className="boton boton--primario" disabled={elegida === null || enviando}>
+        <button type="submit" className="cta-pill-btn" disabled={elegida === null || enviando}>
           {enviando ? "Comprobando…" : "Responder"}
         </button>
       )}
@@ -57,7 +57,7 @@ function Actividad({ actividad, alCambiarPuntaje }) {
           </p>
           {resultado.retroalimentacion && <p>{resultado.retroalimentacion}</p>}
           {!resultado.correcta && (
-            <button type="button" className="boton boton--secundario" onClick={reintentar}>
+            <button type="button" className="btn-outline-pill" onClick={reintentar}>
               Intentar de nuevo
             </button>
           )}
@@ -97,9 +97,9 @@ export default function Practicar({ bienId }) {
 
   return (
     <section aria-labelledby="t-practicar" className="practicar">
-      <h2 id="t-practicar">Practicar</h2>
+      <h2 id="t-practicar" className="detail-panel__title">Practicar</h2>
       {!abierto ? (
-        <button type="button" className="boton boton--primario" onClick={abrir}>
+        <button type="button" className="cta-pill-btn" onClick={abrir}>
           Practicar con este bien
         </button>
       ) : (

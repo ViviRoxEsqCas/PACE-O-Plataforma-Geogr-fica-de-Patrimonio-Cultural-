@@ -1,24 +1,98 @@
+import { useEffect, useRef, useState } from "react";
 import { Link } from "react-router-dom";
+import { useCatalogo } from "../hooks/Catalogo";
 
-export function Corazon({ tamano = 22 }) {
-  return (
-    <svg className="corazon" width={tamano} height={tamano} viewBox="0 0 32 32" aria-hidden="true" focusable="false">
-      <path d="M16 27S4.5 19.8 4.5 11.8c0-3.7 2.8-6.3 6.2-6.3 2.2 0 4.2 1.2 5.3 3.1 1.1-1.9 3.1-3.1 5.3-3.1 3.4 0 6.2 2.6 6.2 6.3C27.5 19.8 16 27 16 27z" fill="currentColor" />
-    </svg>
-  );
+/** Enlace a una ficha de muestra: la primera del catálogo (o el mapa si aún no hay datos). */
+export function useRutaPatrimonio() {
+  const { bienes } = useCatalogo();
+  return bienes[0] ? `/bienes/${bienes[0].id}` : "/explorar";
 }
 
-export default function Cabecera() {
+const ENLACES = [
+  ["inicio", "INICIO", "01. INICIO", "/"],
+  ["explorar", "EXPLORAR MAPA", "02. EXPLORACIÓN GEOGRÁFICA", "/explorar"],
+  ["patrimonio", "PATRIMONIO", "03. FICHA PATRIMONIAL", null],
+  ["rutas", "RUTAS", "04. RUTAS E ITINERARIOS", "/rutas"],
+];
+
+/**
+ * Barra superior del diseño (marca, insignia, navegación y botón de menú) con el menú superpuesto.
+ * `activa`: inicio | explorar | patrimonio | rutas. `bordeada`: variante de las pantallas interiores.
+ */
+export default function Cabecera({ activa, insignia, notaMenu, bordeada = false, animada = false }) {
+  const [abierto, setAbierto] = useState(false);
+  const rutaPatrimonio = useRutaPatrimonio();
+  const cerrar = useRef(null);
+  const aPatrimonio = (a) => a ?? rutaPatrimonio;
+
+  useEffect(() => {
+    if (!abierto) return undefined;
+    cerrar.current?.focus();
+    const alTeclear = (e) => e.key === "Escape" && setAbierto(false);
+    document.addEventListener("keydown", alTeclear);
+    return () => document.removeEventListener("keydown", alTeclear);
+  }, [abierto]);
+
   return (
-    <header className="cabecera">
-      <div className="cabecera__contenido">
-        <Link to="/" className="marca" aria-label="Paceño, ir al inicio">
-          <span className="marca__nombre">Paceño</span>
-          <Corazon tamano={26} />
-        </Link>
-        <p className="cabecera__lema">Descubre, aprende y cuida el patrimonio cultural de La Paz</p>
-      </div>
-      <div className="cabecera__escalera" aria-hidden="true" />
-    </header>
+    <>
+      <header className={`top-bar${bordeada ? " top-bar--bordered" : ""}${animada ? " reveal-up" : ""}`}>
+        <div className="top-bar__left">
+          <Link to="/" className="brand-logo" aria-label="Inicio PACEÑO">
+            行旅 <span className="brand-logo__sub">PACEÑO</span>
+          </Link>
+          <div className="copyright-badge">
+            <span className="copyright-pill" aria-hidden="true" />
+            <span className="copyright-text">{insignia}</span>
+          </div>
+        </div>
+
+        <nav className="top-bar__nav" aria-label="Navegación principal">
+          <ul className="nav-list">
+            {ENLACES.map(([clave, etiqueta, , destino]) => (
+              <li key={clave}>
+                <Link to={aPatrimonio(destino)} className={`nav-link${activa === clave ? " is-active" : ""}`} aria-current={activa === clave ? "page" : undefined}>
+                  {etiqueta}
+                </Link>
+              </li>
+            ))}
+          </ul>
+          <button
+            className="menu-pill-btn"
+            type="button"
+            aria-label={abierto ? "Cerrar menú" : "Abrir menú"}
+            aria-expanded={abierto}
+            aria-controls="drawerOverlay"
+            onClick={() => setAbierto((v) => !v)}
+          >
+            <span className="menu-line" />
+            <span className="menu-line" />
+          </button>
+        </nav>
+      </header>
+
+      <aside
+        className={`drawer-overlay${abierto ? " is-open" : ""}`}
+        id="drawerOverlay"
+        aria-hidden={!abierto}
+        onClick={(e) => e.target === e.currentTarget && setAbierto(false)}
+      >
+        <button type="button" className="drawer-close-btn" aria-label="Cerrar menú" ref={cerrar} onClick={() => setAbierto(false)} tabIndex={abierto ? 0 : -1}>
+          ✕
+        </button>
+        <div className="drawer-content">
+          <p className="drawer-label">NAVEGACIÓN / PACEÑO · LA PAZ</p>
+          <ul className="drawer-links">
+            {ENLACES.map(([clave, , etiqueta, destino]) => (
+              <li key={clave}>
+                <Link to={aPatrimonio(destino)} className={activa === clave ? "is-active" : undefined} tabIndex={abierto ? 0 : -1} onClick={() => setAbierto(false)}>
+                  {etiqueta}
+                </Link>
+              </li>
+            ))}
+          </ul>
+          <p className="drawer-meta">{notaMenu}</p>
+        </div>
+      </aside>
+    </>
   );
 }

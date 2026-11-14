@@ -12,7 +12,7 @@ export function ErrorCarga({ error, onReintentar }) {
     <div className="estado estado--error" role="alert">
       <p>{error?.message ?? "Ocurrió un error inesperado."}</p>
       {onReintentar && (
-        <button type="button" className="boton boton--secundario" onClick={onReintentar}>
+        <button type="button" className="btn-outline-pill" onClick={onReintentar}>
           Reintentar
         </button>
       )}

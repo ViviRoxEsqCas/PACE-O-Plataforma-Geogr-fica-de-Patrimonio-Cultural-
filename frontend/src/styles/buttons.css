@@ -1,0 +1,126 @@
+/* ==========================================================================
+   COMPONENTE GLOBAL: BOTONES Y CONTROLES — PACEÑO
+   ========================================================================== */
+.cta-pill-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  background-color: var(--amber-cta);
+  color: var(--ink-black);
+  text-decoration: none;
+  border: 1.5px solid transparent;
+  font-size: 0.74rem;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  padding: 11px 22px;
+  border-radius: 999px;
+  cursor: pointer;
+  box-shadow: 0 8px 20px rgba(247, 168, 35, 0.25);
+  transition: transform 0.3s var(--ease-editorial), background-color 0.25s ease,
+    box-shadow 0.3s ease;
+}
+
+.cta-pill-btn:hover {
+  background-color: var(--amber-cta-hover);
+  transform: translateY(-2px);
+  box-shadow: 0 12px 26px rgba(247, 168, 35, 0.4);
+}
+
+.cta-pill-btn:active {
+  transform: translateY(0);
+}
+
+.cta-plus {
+  font-size: 0.95rem;
+  font-weight: 700;
+  line-height: 1;
+  transition: transform 0.3s var(--ease-editorial);
+}
+
+.cta-pill-btn:hover .cta-plus {
+  transform: rotate(90deg);
+}
+
+.btn-outline-pill {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  background-color: var(--bg-canvas);
+  color: var(--ink-black);
+  border: 1.5px solid var(--ink-black);
+  text-decoration: none;
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  padding: 10px 20px;
+  border-radius: 999px;
+  cursor: pointer;
+  transition: background-color 0.25s ease, color 0.25s ease, transform 0.3s var(--ease-editorial);
+}
+
+.btn-outline-pill:hover {
+  background-color: var(--ink-black);
+  color: var(--bg-canvas);
+  transform: translateY(-2px);
+}
+
+.btn-crimson-pill {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  background-color: var(--crimson-japan);
+  color: var(--bg-canvas);
+  border: 1.5px solid var(--crimson-japan);
+  text-decoration: none;
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  padding: 10px 20px;
+  border-radius: 999px;
+  cursor: pointer;
+  transition: background-color 0.25s ease, transform 0.3s var(--ease-editorial),
+    box-shadow 0.3s ease;
+}
+
+.btn-crimson-pill:hover {
+  background-color: var(--crimson-hover);
+  transform: translateY(-2px);
+  box-shadow: 0 10px 22px rgba(200, 22, 29, 0.28);
+}
+
+.arrow-btn {
+  width: 30px;
+  height: 30px;
+  border-radius: 50%;
+  border: 1px solid var(--border-subtle);
+  background-color: var(--bg-canvas);
+  color: var(--ink-dark);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: transform 0.3s var(--ease-editorial), background-color 0.25s ease,
+    border-color 0.25s ease, color 0.25s ease, box-shadow 0.3s ease;
+}
+
+.arrow-btn:hover {
+  transform: translateY(-2px);
+  border-color: var(--ink-black);
+  box-shadow: 0 6px 14px rgba(0, 0, 0, 0.1);
+}
+
+.arrow-btn.is-crimson {
+  background-color: var(--crimson-japan);
+  border-color: var(--crimson-japan);
+  color: var(--bg-canvas);
+}
+
+.arrow-btn.is-crimson:hover {
+  background-color: var(--crimson-hover);
+  box-shadow: 0 6px 16px rgba(200, 22, 29, 0.32);
+}

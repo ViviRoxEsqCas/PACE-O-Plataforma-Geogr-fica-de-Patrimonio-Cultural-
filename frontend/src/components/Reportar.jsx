@@ -51,16 +51,16 @@ export default function Reportar({ bienId }) {
 
   return (
     <section aria-labelledby="t-reportar" className="reportar">
-      <h2 id="t-reportar">Reportar</h2>
+      <h2 id="t-reportar" className="detail-panel__title">Reportar</h2>
       {!abierto ? (
-        <button type="button" className="boton boton--secundario" onClick={() => setAbierto(true)}>
+        <button type="button" className="btn-outline-pill" onClick={() => setAbierto(true)}>
           Reportar un problema con esta ficha
         </button>
       ) : enviado ? (
         <div className="resultado resultado--ok" role="status">
           <p className="resultado__titulo">¡Gracias! Recibimos tu reporte.</p>
           <p>El equipo editorial lo revisará. No guardamos datos personales, así que no recibirás una respuesta.</p>
-          <button type="button" className="boton boton--secundario" onClick={() => setEnviado(false)}>
+          <button type="button" className="btn-outline-pill" onClick={() => setEnviado(false)}>
             Enviar otro reporte
           </button>
         </div>
@@ -87,10 +87,10 @@ export default function Reportar({ bienId }) {
           </div>
           {error && <ErrorCarga error={error} />}
           <div className="formulario__acciones">
-            <button type="submit" className="boton boton--primario" disabled={!valido || enviando}>
+            <button type="submit" className="cta-pill-btn" disabled={!valido || enviando}>
               {enviando ? "Enviando…" : "Enviar reporte"}
             </button>
-            <button type="button" className="boton boton--texto" onClick={() => setAbierto(false)}>
+            <button type="button" className="btn-text" onClick={() => setAbierto(false)}>
               Cancelar
             </button>
           </div>
