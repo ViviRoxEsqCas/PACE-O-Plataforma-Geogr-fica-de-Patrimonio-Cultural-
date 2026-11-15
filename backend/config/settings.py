@@ -120,7 +120,9 @@ REST_FRAMEWORK = {
     # RF-17: límite de reportes por IP. Formato «N/hour»; se ajusta en .env (REPORTES_LIMITE).
     "DEFAULT_THROTTLE_RATES": {"reportes": os.getenv("REPORTES_LIMITE", "5/hour")},
     # Si hay un proxy inverso delante (semana 4), indique cuántos: la IP real viene de X-Forwarded-For.
-    "NUM_PROXIES": int(os.getenv("NUM_PROXIES", "0")) or None,
+    # 0 = sin proxy: se usa REMOTE_ADDR. No convertir 0 en None: DRF tomaría entonces toda la cabecera
+    # X-Forwarded-For (que el cliente controla) como identidad y el límite de reportes sería evadible.
+    "NUM_PROXIES": int(os.getenv("NUM_PROXIES", "0")),
 }
 
 # --- CORS restringido al origen de la PWA (sección 8.2) ---
@@ -133,3 +135,7 @@ if not DEBUG:
     SESSION_COOKIE_SECURE = True
     CSRF_COOKIE_SECURE = True
     SECURE_HSTS_SECONDS = 3600
+    # Detrás de un proxy que termina HTTPS, sin esto Django ve HTTP y SECURE_SSL_REDIRECT entra en bucle.
+    # Activar solo si el proxy sobrescribe siempre X-Forwarded-Proto (si no, el cliente podría falsificarla).
+    if env_bool("USAR_X_FORWARDED_PROTO", False):
+        SECURE_PROXY_SSL_HEADER = ("HTTP_X_FORWARDED_PROTO", "https")

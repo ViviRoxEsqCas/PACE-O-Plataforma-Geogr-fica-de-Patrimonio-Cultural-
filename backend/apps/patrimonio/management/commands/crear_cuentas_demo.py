@@ -8,8 +8,9 @@ No usar en producción (RN-08: en producción las cuentas las crea el Administra
 import os
 import secrets
 
+from django.conf import settings
 from django.contrib.auth.models import Group, User
-from django.core.management.base import BaseCommand
+from django.core.management.base import BaseCommand, CommandError
 
 from apps.patrimonio.roles import GRUPO_ADMINISTRADOR, GRUPO_EDITOR
 
@@ -22,7 +23,18 @@ CUENTAS = [
 class Command(BaseCommand):
     help = "Crea las cuentas editor_demo y admin_demo (idempotente; restablece su contraseña)."
 
-    def handle(self, *args, **options):
+    def add_arguments(self, parser):
+        parser.add_argument(
+            "--forzar", action="store_true",
+            help="Permite ejecutarlo con DJANGO_DEBUG=False (no recomendado: crea cuentas de personal de demostración).",
+        )
+
+    def handle(self, *args, forzar=False, **options):
+        if not settings.DEBUG and not forzar:
+            raise CommandError(
+                "Este comando crea cuentas de demostración con acceso al panel y no debe ejecutarse en producción "
+                "(DJANGO_DEBUG=False). Si es una demostración desplegada a propósito, repita con --forzar."
+            )
         for usuario, grupo, variable in CUENTAS:
             clave = os.getenv(variable) or secrets.token_urlsafe(12)
             cuenta, _ = User.objects.get_or_create(username=usuario)

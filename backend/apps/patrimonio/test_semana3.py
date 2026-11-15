@@ -8,6 +8,7 @@ import shutil
 import tempfile
 from pathlib import Path
 
+from django.conf import settings
 from django.contrib.auth.models import Group, User
 from django.core.cache import cache
 from django.core.exceptions import ValidationError
@@ -207,6 +208,25 @@ class ReportesTests(Base):
         self.assertEqual(self.enviar().status_code, 429)
         self.assertEqual(ReporteCiudadano.objects.count(), limite)
 
+    def test_PT17_el_limite_no_se_evade_cambiando_X_Forwarded_For(self):
+        """Sin proxy (NUM_PROXIES=0) la identidad es REMOTE_ADDR: una cabecera inventada no reinicia el límite."""
+        proxies = settings.REST_FRAMEWORK["NUM_PROXIES"]
+        # None haría que DRF use toda la cabecera X-Forwarded-For (controlada por el cliente) como identidad.
+        self.assertIsNotNone(proxies, "NUM_PROXIES no debe ser None: 0 significa «sin proxy».")
+        if proxies != 0:
+            self.skipTest("Hay proxies configurados en el entorno; este caso es para NUM_PROXIES=0.")
+        limite = int(api_settings.DEFAULT_THROTTLE_RATES["reportes"].split("/")[0])
+        for i in range(limite):
+            r = self.client.post(
+                "/api/reportes/", self.datos(), content_type="application/json", HTTP_X_FORWARDED_FOR=f"10.0.0.{i}"
+            )
+            self.assertEqual(r.status_code, 201)
+        r = self.client.post(
+            "/api/reportes/", self.datos(), content_type="application/json", HTTP_X_FORWARDED_FOR="10.0.0.250"
+        )
+        self.assertEqual(r.status_code, 429)
+        self.assertEqual(ReporteCiudadano.objects.count(), limite)
+
     def test_PT17_el_visitante_no_puede_listar_ni_consultar_reportes(self):
         r = self.enviar()
         self.assertEqual(self.client.get("/api/reportes/").status_code, 405)
@@ -387,3 +407,23 @@ class ComandosTests(TestCase):
             self.assertTrue((Path(media) / "bienes" / "foto.png").is_file())
             # La ficha sigue publicable: la imagen tiene autor y licencia (RN-02).
             self.assertEqual(bien.errores_publicacion(), [])
+
+
+class CuentasDemoTests(TestCase):
+    """El comando de cuentas de demostración no debe correr por accidente en producción."""
+
+    def test_se_niega_con_DEBUG_apagado_salvo_con_forzar(self):
+        with override_settings(DEBUG=False):
+            with self.assertRaisesMessage(CommandError, "no debe ejecutarse en producción"):
+                call_command("crear_cuentas_demo", stdout=io.StringIO())
+            self.assertFalse(User.objects.filter(username__in=("editor_demo", "admin_demo")).exists())
+            call_command("crear_cuentas_demo", forzar=True, stdout=io.StringIO())
+        self.assertEqual(User.objects.filter(username__in=("editor_demo", "admin_demo")).count(), 2)
+
+    def test_en_desarrollo_crea_cuentas_de_personal_sin_superusuario(self):
+        with override_settings(DEBUG=True):
+            call_command("crear_cuentas_demo", stdout=io.StringIO())
+        editor = User.objects.get(username="editor_demo")
+        self.assertTrue(editor.is_staff)
+        self.assertFalse(editor.is_superuser)
+        self.assertEqual(list(editor.groups.values_list("name", flat=True)), [GRUPO_EDITOR])
