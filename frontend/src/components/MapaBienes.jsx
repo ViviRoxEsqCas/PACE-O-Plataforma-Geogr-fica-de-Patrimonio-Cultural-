@@ -7,8 +7,15 @@ import { nombreTipo } from "../lib/bienes";
 // Vista inicial del diseño de referencia (centro de La Paz); luego se encuadran los marcadores.
 const CENTRO = [-16.4975, -68.1335];
 const ZOOM = 14;
-const TESELAS = "https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png";
-const ATRIBUCION = '© <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener noreferrer">Colaboradores de OpenStreetMap</a> © <a href="https://carto.com/attributions" target="_blank" rel="noopener noreferrer">CARTO</a> · PACEÑO';
+// CARTO (estilo Positron del diseño) exige una clave de API desde el 25/09/2026: sin ella sus teselas muestran
+// «API KEY REQUIRED» en lugar del mapa. Con VITE_CARTO_API_KEY se conserva ese mapa base; sin clave se usa
+// OpenStreetMap, que no la requiere (el servicio devuelve 200 con el aviso, así que no se puede detectar el fallo).
+const CLAVE_CARTO = (import.meta.env?.VITE_CARTO_API_KEY ?? "").trim();
+const TESELAS = CLAVE_CARTO
+  ? `https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png?key=${encodeURIComponent(CLAVE_CARTO)}`
+  : "https://tile.openstreetmap.org/{z}/{x}/{y}.png";
+const ATRIBUCION_OSM = '© <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener noreferrer">Colaboradores de OpenStreetMap</a>';
+const ATRIBUCION = `${ATRIBUCION_OSM}${CLAVE_CARTO ? ' © <a href="https://carto.com/attributions" target="_blank" rel="noopener noreferrer">CARTO</a>' : ""} · PACEÑO`;
 
 /** Pin numerado del diseño. `texto` es el número del marcador (o ★ en la ficha). */
 function iconoPin(texto, seleccionado) {
