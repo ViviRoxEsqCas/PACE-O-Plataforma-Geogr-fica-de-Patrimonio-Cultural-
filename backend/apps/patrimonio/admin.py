@@ -267,6 +267,8 @@ class RevisionForm(forms.ModelForm):
         if actual is not None:
             permitidos = (actual.nombre,) + ReporteCiudadano.destinos_permitidos(actual.nombre)
             self.fields["estado"].queryset = EstadoReporte.objects.filter(nombre__in=permitidos)
+            # El estado actual siempre está entre las opciones: sin esto el selector ofrecía un «---------» que no es un estado.
+            self.fields["estado"].empty_label = None
             if actual.es_final:
                 self.fields["estado"].disabled = True
                 self.fields["nota_revision"].disabled = True

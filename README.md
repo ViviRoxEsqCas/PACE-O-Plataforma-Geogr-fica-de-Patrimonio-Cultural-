@@ -7,7 +7,7 @@
 ![Semana 1](https://img.shields.io/badge/SEMANA_1-COMPLETA-4FA36A?style=for-the-badge&labelColor=2A2723)
 ![Semana 2](https://img.shields.io/badge/SEMANA_2-CON_PENDIENTES-F5C842?style=for-the-badge&labelColor=2A2723)
 ![Semana 3](https://img.shields.io/badge/SEMANA_3-COMPLETA-4FA36A?style=for-the-badge&labelColor=2A2723)
-![Semana 4](https://img.shields.io/badge/SEMANA_4-PENDIENTE-6FA3C7?style=for-the-badge&labelColor=2A2723)
+![Semana 4](https://img.shields.io/badge/SEMANA_4-CIERRE_CON_PENDIENTES-F5C842?style=for-the-badge&labelColor=2A2723)
 
 ![React](https://img.shields.io/badge/React-A8423C?style=flat-square&logo=react&logoColor=white)
 ![Vite](https://img.shields.io/badge/Vite-A8423C?style=flat-square&logo=vite&logoColor=white)
@@ -163,7 +163,7 @@ Abre **http://localhost:5173**
   </tr>
 </table>
 
-**Pruebas:** `python manage.py test` (backend) · `npm test` (frontend) · `npm run e2e` (navegador, con ambos servidores activos).
+**Pruebas:** `python manage.py test` (backend) · `npm test` (frontend) · `npm run e2e` y `npm run e2e:semana4` (navegador, con ambos servidores activos; ver [`docs/semana4.md`](docs/semana4.md)).
 
 <img src="assets/divider.svg" width="100%" alt="">
 
@@ -174,15 +174,15 @@ Abre **http://localhost:5173**
 | **01** | Django, PostgreSQL, modelo de datos, roles, panel editorial y API | ✅ |
 | **02** | PWA React: lista, ficha, mapa, búsqueda, filtros y distancia | ✅ ⚠️ |
 | **03** | Actividades de opción múltiple y reportes ciudadanos | ✅ · [guía](docs/semana3.md) |
-| **04** | Manifiesto PWA, uso sin conexión, despliegue HTTPS y documentación final | ⏳ |
+| **04** | Integración, pruebas PT-01 a PT-25, manifiesto PWA instalable y documentación de cierre (sin modo sin conexión ni HTTPS) | ✅ ⚠️ · [guía](docs/semana4.md) |
 
 ### Pendientes conocidos
 
-- **Imágenes:** 0 de 13 fichas tienen imágenes cargadas todavía. Ya existe el espacio para cargarlas: [`contenido/imagenes/`](contenido/imagenes/LEEME.md) + `python manage.py cargar_imagenes`.
+- **Imágenes:** las 13 fichas tienen imagen en [`contenido/imagenes/`](contenido/imagenes/LEEME.md) (`python manage.py cargar_imagenes`), pero 12 figuran como «elaboración propia asistida por IA»: la editorial debe confirmar su titularidad o sustituirlas por fotografías con licencia clara.
 - **Actividades:** las 10 preguntas de arranque usan solo datos de las fichas y sus leyes; requieren revisión editorial.
 - **Coordenadas:** por contrastar con la IDE La Paz; 5 tienen confianza baja (Casa Museo, Calle Jaén, Museo Costumbrista, Museo del Litoral y Teatro Municipal). Los museos de la calle Jaén están a pocos metros y sus marcadores se superponen al alejar el mapa. Detalle en [`verificacion_fichas.md`](docs/verificacion_fichas.md).
 - **Patrimonio inmaterial:** las 3 manifestaciones requieren validación con especialistas o personas portadoras.
-- **Pruebas E2E:** solo en Chromium sobre Linux; falta Windows 11, Safari, Firefox e iOS. Sin conexión a teselas, el mapa base aparece gris en las capturas.
+- **Pruebas E2E:** solo en Chrome sobre Linux; falta Windows 11, Safari, Firefox e iOS. **PWA:** instalable, pero sin modo sin conexión y sin despliegue HTTPS (fuera del MVP / pendiente). Sin conexión a teselas, el mapa base aparece gris en las capturas.
 - **Captura sintética:** `pt09_imagen_sintetica_de_prueba_con_atribucion.png` es una imagen de prueba, no contenido patrimonial real.
 
 Detalle de evidencias: [`docs/evidencias/`](docs/evidencias/) · [`verificacion_fichas.md`](docs/verificacion_fichas.md)

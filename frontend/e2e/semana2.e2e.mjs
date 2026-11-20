@@ -26,7 +26,8 @@ async function caso(id, descripcion, fn) {
 const igual = (a, b, msg) => { if (JSON.stringify(a) !== JSON.stringify(b)) throw new Error(`${msg}: esperado ${JSON.stringify(b)}, obtenido ${JSON.stringify(a)}`); };
 const cierto = (c, msg) => { if (!c) throw new Error(msg); };
 
-const navegador = await chromium.launch();
+// PACENO_CHROME (opcional): ruta de un Chrome/Edge ya instalado; evita descargar el Chromium de Playwright.
+const navegador = await chromium.launch(process.env.PACENO_CHROME ? { executablePath: process.env.PACENO_CHROME } : {});
 async function nuevaPagina(opciones = {}) {
   const contexto = await navegador.newContext({ viewport: { width: 1366, height: 768 }, locale: "es-BO", ...opciones });
   const pagina = await contexto.newPage();

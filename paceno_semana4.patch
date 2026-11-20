@@ -1,0 +1,1873 @@
+diff --git a/README.md b/README.md
+index 6e1ab57..738a1aa 100644
+--- a/README.md
++++ b/README.md
+@@ -7,7 +7,7 @@
+ ![Semana 1](https://img.shields.io/badge/SEMANA_1-COMPLETA-4FA36A?style=for-the-badge&labelColor=2A2723)
+ ![Semana 2](https://img.shields.io/badge/SEMANA_2-CON_PENDIENTES-F5C842?style=for-the-badge&labelColor=2A2723)
+ ![Semana 3](https://img.shields.io/badge/SEMANA_3-COMPLETA-4FA36A?style=for-the-badge&labelColor=2A2723)
+-![Semana 4](https://img.shields.io/badge/SEMANA_4-PENDIENTE-6FA3C7?style=for-the-badge&labelColor=2A2723)
++![Semana 4](https://img.shields.io/badge/SEMANA_4-CIERRE_CON_PENDIENTES-F5C842?style=for-the-badge&labelColor=2A2723)
+ 
+ ![React](https://img.shields.io/badge/React-A8423C?style=flat-square&logo=react&logoColor=white)
+ ![Vite](https://img.shields.io/badge/Vite-A8423C?style=flat-square&logo=vite&logoColor=white)
+@@ -163,7 +163,7 @@ Abre **http://localhost:5173**
+   </tr>
+ </table>
+ 
+-**Pruebas:** `python manage.py test` (backend) · `npm test` (frontend) · `npm run e2e` (navegador, con ambos servidores activos).
++**Pruebas:** `python manage.py test` (backend) · `npm test` (frontend) · `npm run e2e` y `npm run e2e:semana4` (navegador, con ambos servidores activos; ver [`docs/semana4.md`](docs/semana4.md)).
+ 
+ <img src="assets/divider.svg" width="100%" alt="">
+ 
+@@ -174,15 +174,15 @@ Abre **http://localhost:5173**
+ | **01** | Django, PostgreSQL, modelo de datos, roles, panel editorial y API | ✅ |
+ | **02** | PWA React: lista, ficha, mapa, búsqueda, filtros y distancia | ✅ ⚠️ |
+ | **03** | Actividades de opción múltiple y reportes ciudadanos | ✅ · [guía](docs/semana3.md) |
+-| **04** | Manifiesto PWA, uso sin conexión, despliegue HTTPS y documentación final | ⏳ |
++| **04** | Integración, pruebas PT-01 a PT-25, manifiesto PWA instalable y documentación de cierre (sin modo sin conexión ni HTTPS) | ✅ ⚠️ · [guía](docs/semana4.md) |
+ 
+ ### Pendientes conocidos
+ 
+-- **Imágenes:** 0 de 13 fichas tienen imágenes cargadas todavía. Ya existe el espacio para cargarlas: [`contenido/imagenes/`](contenido/imagenes/LEEME.md) + `python manage.py cargar_imagenes`.
++- **Imágenes:** las 13 fichas tienen imagen en [`contenido/imagenes/`](contenido/imagenes/LEEME.md) (`python manage.py cargar_imagenes`), pero 12 figuran como «elaboración propia asistida por IA»: la editorial debe confirmar su titularidad o sustituirlas por fotografías con licencia clara.
+ - **Actividades:** las 10 preguntas de arranque usan solo datos de las fichas y sus leyes; requieren revisión editorial.
+ - **Coordenadas:** por contrastar con la IDE La Paz; 5 tienen confianza baja (Casa Museo, Calle Jaén, Museo Costumbrista, Museo del Litoral y Teatro Municipal). Los museos de la calle Jaén están a pocos metros y sus marcadores se superponen al alejar el mapa. Detalle en [`verificacion_fichas.md`](docs/verificacion_fichas.md).
+ - **Patrimonio inmaterial:** las 3 manifestaciones requieren validación con especialistas o personas portadoras.
+-- **Pruebas E2E:** solo en Chromium sobre Linux; falta Windows 11, Safari, Firefox e iOS. Sin conexión a teselas, el mapa base aparece gris en las capturas.
++- **Pruebas E2E:** solo en Chrome sobre Linux; falta Windows 11, Safari, Firefox e iOS. **PWA:** instalable, pero sin modo sin conexión y sin despliegue HTTPS (fuera del MVP / pendiente). Sin conexión a teselas, el mapa base aparece gris en las capturas.
+ - **Captura sintética:** `pt09_imagen_sintetica_de_prueba_con_atribucion.png` es una imagen de prueba, no contenido patrimonial real.
+ 
+ Detalle de evidencias: [`docs/evidencias/`](docs/evidencias/) · [`verificacion_fichas.md`](docs/verificacion_fichas.md)
+diff --git a/backend/apps/patrimonio/admin.py b/backend/apps/patrimonio/admin.py
+index 29cd259..7871238 100644
+--- a/backend/apps/patrimonio/admin.py
++++ b/backend/apps/patrimonio/admin.py
+@@ -267,6 +267,8 @@ class RevisionForm(forms.ModelForm):
+         if actual is not None:
+             permitidos = (actual.nombre,) + ReporteCiudadano.destinos_permitidos(actual.nombre)
+             self.fields["estado"].queryset = EstadoReporte.objects.filter(nombre__in=permitidos)
++            # El estado actual siempre está entre las opciones: sin esto el selector ofrecía un «---------» que no es un estado.
++            self.fields["estado"].empty_label = None
+             if actual.es_final:
+                 self.fields["estado"].disabled = True
+                 self.fields["nota_revision"].disabled = True
+diff --git a/backend/apps/patrimonio/test_semana4.py b/backend/apps/patrimonio/test_semana4.py
+new file mode 100644
+index 0000000..a98f067
+--- /dev/null
++++ b/backend/apps/patrimonio/test_semana4.py
+@@ -0,0 +1,148 @@
++"""
++Pruebas de cierre de la semana 4: casos de la matriz PT-01 a PT-25 que no tenían una comprobación
++directa en las semanas anteriores (permisos en el servidor y gestión de cuentas desde el panel).
++Se ejecutan contra PostgreSQL real, igual que el resto. La correspondencia completa entre los
++identificadores de la matriz y estas pruebas está en docs/pruebas/matriz_PT01_PT25.md.
++"""
++from django import forms
++from django.contrib.auth.models import Group, User
++from django.forms.widgets import MultiWidget
++from django.test import TestCase
++from django.urls import reverse
++
++from .models import EstadoReporte, ReporteCiudadano, TipoReporte
++from .roles import GRUPO_ADMINISTRADOR, GRUPO_EDITOR
++from .test_semana3 import publicar
++
++
++def datos_de_formulario(form, excluir=()):
++    """Reconstruye el POST de un formulario de Django Admin a partir de sus valores actuales."""
++    datos = {}
++    for nombre, campo in form.fields.items():
++        if nombre in excluir:
++            continue
++        valor = form.initial.get(nombre, campo.initial)
++        if isinstance(campo.widget, MultiWidget):
++            for i, parte in enumerate(campo.widget.decompress(valor)):
++                datos[f"{nombre}_{i}"] = "" if parte is None else parte
++        elif isinstance(campo, forms.BooleanField):
++            if valor:
++                datos[nombre] = "on"
++        elif isinstance(campo, forms.ModelMultipleChoiceField):
++            datos[nombre] = [getattr(o, "pk", o) for o in (valor or [])]
++        elif valor is not None:
++            datos[nombre] = valor
++    return datos
++
++
++class CuentasYPermisosSemana4(TestCase):
++    @classmethod
++    def setUpTestData(cls):
++        cls.editor = User.objects.create_user("editor", password="x-Editor-123", is_staff=True)
++        cls.editor.groups.add(Group.objects.get(name=GRUPO_EDITOR))
++        cls.admin = User.objects.create_user("admin", password="x-Admin-123", is_staff=True)
++        cls.admin.groups.add(Group.objects.get(name=GRUPO_ADMINISTRADOR))
++
++    # -- PT-21: los permisos se comprueban en el servidor, no solo se ocultan en la interfaz ----------
++    def test_PT21_editor_no_puede_crear_cuentas_enviando_el_formulario_directamente(self):
++        self.client.force_login(self.editor)
++        resp = self.client.post(
++            reverse("admin:auth_user_add"),
++            {"username": "intruso", "password1": "Cl4ve-segura-987", "password2": "Cl4ve-segura-987", "usable_password": "true"},
++        )
++        self.assertEqual(resp.status_code, 403)
++        self.assertFalse(User.objects.filter(username="intruso").exists())
++
++    def test_PT21_editor_no_puede_modificar_cuentas_ni_grupos_por_POST(self):
++        self.client.force_login(self.editor)
++        url = reverse("admin:auth_user_change", args=[self.editor.pk])
++        self.assertEqual(self.client.post(url, {"username": "editor", "is_superuser": "on", "is_staff": "on"}).status_code, 403)
++        self.editor.refresh_from_db()
++        self.assertFalse(self.editor.is_superuser)
++        self.assertEqual(self.client.post(reverse("admin:auth_group_add"), {"name": "Nuevo"}).status_code, 403)
++        self.assertFalse(Group.objects.filter(name="Nuevo").exists())
++
++    # -- PT-22: el Administrador crea y desactiva una cuenta desde el panel -------------------------
++    def test_PT22_administrador_crea_una_cuenta_y_al_desactivarla_ya_no_ingresa(self):
++        self.client.force_login(self.admin)
++        clave = "Cl4ve-segura-987"
++        resp = self.client.post(
++            reverse("admin:auth_user_add"),
++            {"username": "nueva_editora", "password1": clave, "password2": clave, "usable_password": "true"},
++        )
++        self.assertEqual(resp.status_code, 302, getattr(resp, "context", None) and resp.context["adminform"].form.errors)
++        cuenta = User.objects.get(username="nueva_editora")
++        self.assertTrue(cuenta.is_active)
++
++        # Se le asigna el grupo Editor y se marca como personal; con esos datos ya puede iniciar sesión.
++        url = reverse("admin:auth_user_change", args=[cuenta.pk])
++        formulario = self.client.get(url).context["adminform"].form
++        datos = datos_de_formulario(formulario)
++        datos.update({"is_staff": "on", "groups": [Group.objects.get(name=GRUPO_EDITOR).pk]})
++        self.assertEqual(self.client.post(url, datos).status_code, 302)
++        cuenta.refresh_from_db()
++        self.assertTrue(cuenta.is_staff)
++        self.assertTrue(self.client.login(username="nueva_editora", password=clave))
++
++        # Se desactiva desde el panel (no se borra): sin «is_active», la cuenta no puede ingresar.
++        self.client.force_login(self.admin)
++        datos = datos_de_formulario(self.client.get(url).context["adminform"].form)
++        datos.pop("is_active", None)
++        self.assertEqual(self.client.post(url, datos).status_code, 302)
++        cuenta.refresh_from_db()
++        self.assertFalse(cuenta.is_active)
++        self.client.logout()
++        self.assertFalse(self.client.login(username="nueva_editora", password=clave))
++        self.assertTrue(User.objects.filter(pk=cuenta.pk).exists(), "la cuenta se desactiva, no se borra")
++
++    def test_PT22_una_cuenta_desactivada_con_sesion_abierta_pierde_el_acceso_al_panel(self):
++        self.client.force_login(self.editor)
++        self.assertEqual(self.client.get(reverse("admin:index")).status_code, 200)
++        self.editor.is_active = False
++        self.editor.save()
++        resp = self.client.get(reverse("admin:index"))
++        self.assertEqual(resp.status_code, 302)
++        self.assertIn("/admin/login/", resp["Location"])
++
++    def test_PT22_el_administrador_no_puede_borrar_cuentas(self):
++        """RF-22: las cuentas se desactivan, no se borran (el permiso delete_user no se concede)."""
++        self.client.force_login(self.admin)
++        resp = self.client.post(reverse("admin:auth_user_delete", args=[self.editor.pk]), {"post": "yes"})
++        self.assertEqual(resp.status_code, 403)
++        self.assertTrue(User.objects.filter(pk=self.editor.pk).exists())
++
++
++class BandejaDeReportesSemana4(TestCase):
++    """PT-19: en la bandeja solo se ofrecen estados válidos (el estado actual y sus destinos permitidos)."""
++
++    @classmethod
++    def setUpTestData(cls):
++        cls.editor = User.objects.create_user("editor", password="x-Editor-123", is_staff=True)
++        cls.editor.groups.add(Group.objects.get(name=GRUPO_EDITOR))
++        cls.bien = publicar("Ficha con reporte")
++        cls.tipo = TipoReporte.objects.first()
++
++    def opciones_de_estado(self, reporte):
++        self.client.force_login(self.editor)
++        formulario = self.client.get(reverse("admin:patrimonio_reporteciudadano_change", args=[reporte.pk])).context["adminform"].form
++        return [etiqueta for _valor, etiqueta in formulario.fields["estado"].choices]
++
++    def crear_reporte(self, estado):
++        return ReporteCiudadano.objects.create(
++            bien=self.bien, tipo_reporte=self.tipo, descripcion="Texto", estado=EstadoReporte.objects.get(nombre=estado)
++        )
++
++    def test_PT19_el_selector_no_ofrece_una_opcion_en_blanco_ni_transiciones_invalidas(self):
++        self.assertEqual(self.opciones_de_estado(self.crear_reporte(EstadoReporte.NUEVO)), ["nuevo", "en revisión", "descartado"])
++        self.assertEqual(self.opciones_de_estado(self.crear_reporte(EstadoReporte.EN_REVISION)), ["en revisión", "atendido", "descartado"])
++        self.assertEqual(self.opciones_de_estado(self.crear_reporte(EstadoReporte.ATENDIDO)), ["atendido"])
++
++    def test_PT19_una_transicion_invalida_enviada_directamente_se_rechaza(self):
++        reporte = self.crear_reporte(EstadoReporte.NUEVO)
++        self.client.force_login(self.editor)
++        url = reverse("admin:patrimonio_reporteciudadano_change", args=[reporte.pk])
++        atendido = EstadoReporte.objects.get(nombre=EstadoReporte.ATENDIDO)
++        self.client.post(url, {"estado": atendido.pk, "nota_revision": "salto no permitido"})
++        reporte.refresh_from_db()
++        self.assertEqual(reporte.estado.nombre, EstadoReporte.NUEVO)
++        self.assertFalse(reporte.historial.exists())
+diff --git a/docs/semana4.md b/docs/semana4.md
+new file mode 100644
+index 0000000..a3831af
+--- /dev/null
++++ b/docs/semana4.md
+@@ -0,0 +1,96 @@
++# Semana 4 · Integración, pruebas, estabilización y entrega
++
++Este documento registra **lo que realmente se ejecutó** el 20-11-2026. No se marca como aprobado nada que no tenga una prueba y un registro.
++
++## Entorno de las pruebas
++| Dato | Valor |
++|---|---|
++| Sistema | Linux (contenedor de desarrollo), **no** Windows 11 |
++| Despliegue | **Local** (Django `runserver` :8000 + Vite :5173 / `vite preview` :4173). **Sin HTTPS** |
++| Base de datos | PostgreSQL 16 real (no SQLite), con las 13 fichas, 13 actividades y cuentas demo |
++| Navegador | Google Chrome (Chromium) con Playwright. **No** se probó Firefox, Safari, Edge ni iOS/Android reales |
++| Resoluciones | 360, 768 y 1366 px (emulación de viewport, no dispositivos físicos) |
++
++## Cambios de esta semana
++| Archivo | Cambio |
++|---|---|
++| `frontend/public/manifest.webmanifest` (nuevo) | Manifiesto PWA: nombre, `standalone`, colores de la interfaz, iconos 192/512/maskable. |
++| `frontend/public/assets/icons/*.png` (nuevos) | Iconos generados con el mismo diseño de `favicon.svg` (sin cambiar la identidad visual). |
++| `frontend/index.html` | Enlaces `<link rel="manifest">` y `apple-touch-icon`. Nada más. |
++| `backend/apps/patrimonio/admin.py` | **Defecto corregido (PT-19):** el selector de estado de un reporte mostraba una opción vacía `---------` que no es un estado. Ahora solo ofrece el estado actual y sus transiciones válidas. |
++| `backend/apps/patrimonio/test_semana4.py` (nuevo) | 5 pruebas: permisos en el servidor (PT-21), gestión de cuentas (PT-22) y bandeja de reportes (PT-19). |
++| `frontend/src/pwa.test.js` (nuevo) | 7 pruebas del manifiesto, los iconos y que **no** exista service worker. |
++| `frontend/e2e/semana4.e2e.mjs` (nuevo) | Recorrido completo en navegador (25 comprobaciones, incluye PT-25). |
++| `frontend/e2e/semana2.e2e.mjs` | Solo admite `PACENO_CHROME` para usar un Chrome ya instalado. |
++
++No se tocaron modelos, migraciones, endpoints, estilos ni componentes React.
++
++## Estado de la PWA
++- **Instalable:** Chrome (`Page.getAppManifest` e `getInstallabilityErrors`) no informa errores de manifiesto ni de instalabilidad.
++- **Sin conexión: NO implementado** (fuera del MVP). No hay service worker ni caché. El mapa requiere internet.
++- **HTTPS: no desplegado.** Chrome permite instalar desde `localhost`; en un hosting real se necesitará HTTPS.
++
++## Tabla de pruebas PT-01 a PT-25
++Resultado: **Aprobada** = ejecutada y con el resultado esperado. Las evidencias de la E2E están en `docs/evidencias/semana4/` y la lista de pruebas automáticas en `resultado_pruebas_backend.txt`.
++
++| ID | Resultado | Cómo se comprobó | Observaciones |
++|---|---|---|---|
++| PT-01 | Aprobada | Backend + E2E (panel y API pública) | |
++| PT-02 | Aprobada | Backend + E2E | Mensaje «NO se publicó…» con el motivo. |
++| PT-03 | Aprobada | Backend (modelo y panel) | **No** repetida en navegador. |
++| PT-04 | Aprobada | Backend + E2E | |
++| PT-05 | Aprobada | Backend + E2E | La E2E comprueba que el rechazo se debe a autor/licencia, no a un archivo dañado. |
++| PT-06 | Aprobada | E2E semana 2 y E2E semana 4 | Teselas de OSM bloqueadas en la prueba (mapa base gris); los marcadores sí se cuentan. |
++| PT-07 | Aprobada | Backend + E2E semana 2 | «plaza», «PLAZA» y nombre con tilde. |
++| PT-08 | Aprobada | Backend + E2E semana 2 | |
++| PT-09 | Aprobada | E2E semana 4 | Con imagen y fuente cargadas desde el panel. |
++| PT-10 | Aprobada con reserva | E2E semana 2 | Geolocalización **simulada** por Playwright; no se probó con GPS real. |
++| PT-11 | Aprobada | Backend + E2E semana 2 | |
++| PT-12 | Aprobada | Backend + E2E | La lista de actividades no contiene la respuesta ni la explicación. |
++| PT-13 | Aprobada | Backend + E2E | |
++| PT-14 | Aprobada | E2E | Puntos suman una vez; se conservan tras recargar. |
++| PT-15 | Aprobada | Backend (base de datos y panel) + E2E | Dos correctas y ninguna correcta rechazadas. |
++| PT-16 | Aprobada | Backend + E2E | HTTP 201, estado «nuevo». |
++| PT-17 | Aprobada | Backend + E2E | Sin tipo, 501 caracteres y ficha borrador. |
++| PT-18 | Aprobada | Backend + E2E | HTTP 429 y mensaje comprensible en la PWA. En la E2E el límite se subió con `REPORTES_LIMITE=30/hour`. |
++| PT-19 | Aprobada **tras corregir un defecto** | Backend + E2E | Defecto: opción `---------` en el selector. Corregido y repetido. |
++| PT-20 | Aprobada | Backend + E2E | Revisor, fecha, estado anterior y nuevo. |
++| PT-21 | Aprobada | Backend + E2E | El Editor recibe **403** también al enviar los formularios directamente. |
++| PT-22 | Aprobada | Backend + E2E | La cuenta desactivada no ingresa; las cuentas no se borran. |
++| PT-23 | Aprobada | Backend + E2E | El historial del panel lo ve solo el Administrador. |
++| PT-24 | Aprobada **solo en Chrome** | E2E semanas 2 y 4 | 360/768/1366 px sin desbordes. **No ejecutada** en otros navegadores ni en dispositivos físicos. |
++| PT-25 | Aprobada (local, Chrome) | E2E semana 4 | Ficha creada y publicada en el panel → vista en la PWA → actividad → reporte → revisión del Editor. |
++
++Conteo: backend **82/82**, frontend **37/37**, E2E semana 2 **14/14**, E2E semana 4 **25/25**.
++
++## Limitaciones y pendientes reales
++1. **Despliegue HTTPS no realizado**: se entrega ejecución local documentada.
++2. **Navegadores previstos**: solo Chrome. Falta Firefox, Safari/iOS, Edge y Windows 11 real.
++3. **Imágenes del catálogo**: 12 de 13 están declaradas como «Elaboración propia asistida por IA» con licencia «Autorización expresa del titular». El informe exige imágenes propias o con licencia clara; la editorial debe confirmar esa titularidad o reemplazarlas por fotografías reales. Solo la de la Revolución Libertaria (Pablo Michel, CC BY 4.0) tiene autoría externa identificable.
++4. **Contenido**: coordenadas por contrastar (5 con confianza baja), actividades por revisar y manifestaciones inmateriales por validar con especialistas (ver `verificacion_fichas.md`).
++5. **Video de demostración**: no se generó (no se puede grabar desde este entorno). El guion es la sección 11 del documento de la semana y lo reproduce `npm run e2e:semana4`.
++6. **PT-10** con geolocalización simulada; no hay prueba con GPS real.
++7. **Protección de datos personales**: revisar el marco aplicable antes de abrir el piloto al público.
++8. **Contraseñas demo**: las genera `crear_cuentas_demo` (solo con `DJANGO_DEBUG=True`); no se versionan.
++
++## Manual breve
++- **Visitante:** abrir la PWA → *Explorar* (mapa/lista, buscar, filtrar) → abrir una ficha → *Practicar con este bien* → *Reportar un problema con esta ficha*. Puede instalarla desde el menú del navegador («Instalar Paceño»).
++- **Editor:** `http://localhost:8000/admin/` → crear fuentes → crear ficha (borrador) → añadir fuente e imagen con autor y licencia → pasar a *publicado* → revisar *Reportes ciudadanos* y cambiar su estado (nuevo → en revisión → atendido/descartado).
++- **Administrador:** lo anterior, más *Usuarios* (crear, asignar grupo, desactivar) e historial de cambios.
++
++## Endpoints realmente disponibles
++`GET /api/bienes/` · `GET /api/bienes/{id}/` · `GET /api/categorias/` · `GET /api/bienes/{id}/actividades/` · `POST /api/actividades/{id}/responder/` · `GET /api/tipos-reporte/` · `POST /api/reportes/` (este último y `tipos-reporte` se añadieron en la semana 3; ver `docs/semana3.md`).
++
++## Cómo repetir las pruebas
++```powershell
++# Backend (desde backend\, con el entorno virtual activo)
++python manage.py test
++
++# Frontend unitarias (desde frontend\)
++npm test
++
++# E2E (con backend iniciado con REPORTES_LIMITE=30/hour y frontend activo; desde frontend\)
++$env:PACENO_EDITOR_CLAVE = "<clave de editor_demo>"
++$env:PACENO_ADMIN_CLAVE  = "<clave de admin_demo>"
++npm run e2e:semana4
++```
+diff --git a/frontend/e2e/semana2.e2e.mjs b/frontend/e2e/semana2.e2e.mjs
+index 5342760..8c82187 100644
+--- a/frontend/e2e/semana2.e2e.mjs
++++ b/frontend/e2e/semana2.e2e.mjs
+@@ -26,7 +26,8 @@ async function caso(id, descripcion, fn) {
+ const igual = (a, b, msg) => { if (JSON.stringify(a) !== JSON.stringify(b)) throw new Error(`${msg}: esperado ${JSON.stringify(b)}, obtenido ${JSON.stringify(a)}`); };
+ const cierto = (c, msg) => { if (!c) throw new Error(msg); };
+ 
+-const navegador = await chromium.launch();
++// PACENO_CHROME (opcional): ruta de un Chrome/Edge ya instalado; evita descargar el Chromium de Playwright.
++const navegador = await chromium.launch(process.env.PACENO_CHROME ? { executablePath: process.env.PACENO_CHROME } : {});
+ async function nuevaPagina(opciones = {}) {
+   const contexto = await navegador.newContext({ viewport: { width: 1366, height: 768 }, locale: "es-BO", ...opciones });
+   const pagina = await contexto.newPage();
+diff --git a/frontend/e2e/semana4.e2e.mjs b/frontend/e2e/semana4.e2e.mjs
+new file mode 100644
+index 0000000..460ad6d
+--- /dev/null
++++ b/frontend/e2e/semana4.e2e.mjs
+@@ -0,0 +1,606 @@
++// Verificación de extremo a extremo de la semana 4 con un navegador real (Chromium/Chrome).
++// Recorre el flujo de la sección 11 del documento de la semana: panel editorial → PWA → actividad → reporte → revisión.
++// Casos que cubre: PT-01 a PT-05, PT-09, PT-12 a PT-14, PT-15 (panel), PT-16 a PT-23, PT-24 (páginas nuevas) y PT-25, más la PWA.
++//
++// Requisitos (ver docs/semana4.md):
++//   · Backend en :8000 con el catálogo cargado y cuentas demo (python manage.py crear_cuentas_demo).
++//   · Backend iniciado con REPORTES_LIMITE=30/hour (el límite por IP también cuenta los envíos de esta prueba).
++//   · Frontend en :5173 (npm run dev) o en :4173 (npm run build && npm run preview).
++//   · Paquete "playwright" (npm i -D playwright). Opcional: PACENO_CHROME=ruta\a\chrome.exe para usar un Chrome ya instalado.
++// Variables: PACENO_URL, PACENO_API, PACENO_EDITOR, PACENO_EDITOR_CLAVE, PACENO_ADMIN, PACENO_ADMIN_CLAVE, PACENO_EVIDENCIAS.
++// Uso: node e2e/semana4.e2e.mjs
++//
++// La prueba crea una ficha propia («E2E Semana 4 …»), una actividad y un reporte, y al terminar desactiva la ficha
++// para que no aparezca en el catálogo público. Los registros (historial, reporte) se conservan por trazabilidad.
++import { mkdirSync, mkdtempSync, writeFileSync } from "node:fs";
++import { tmpdir } from "node:os";
++import { join } from "node:path";
++import { deflateSync } from "node:zlib";
++import { createRequire } from "node:module";
++const require = createRequire(import.meta.url);
++const { chromium } = require("playwright");
++
++const BASE = (process.env.PACENO_URL ?? "http://127.0.0.1:5173").replace(/\/$/, "");
++const API = (process.env.PACENO_API ?? "http://127.0.0.1:8000").replace(/\/$/, "");
++const EDITOR = { usuario: process.env.PACENO_EDITOR ?? "editor_demo", clave: process.env.PACENO_EDITOR_CLAVE };
++const ADMIN = { usuario: process.env.PACENO_ADMIN ?? "admin_demo", clave: process.env.PACENO_ADMIN_CLAVE };
++const SALIDA = process.env.PACENO_EVIDENCIAS ?? "../docs/evidencias/semana4";
++mkdirSync(SALIDA, { recursive: true });
++if (!EDITOR.clave || !ADMIN.clave) {
++  console.error("Defina PACENO_EDITOR_CLAVE y PACENO_ADMIN_CLAVE (contraseñas de crear_cuentas_demo).");
++  process.exit(2);
++}
++
++const marca = Date.now().toString(36);
++const NOMBRE = `E2E Semana 4 ${marca}`;
++const TOKEN_REPORTE = `reporte-e2e-${marca}`;
++const CUENTA_NUEVA = `e2e_${marca}`;
++const CLAVE_NUEVA = `Cl4ve-E2E-${marca}-!`;
++// PNG válido de 16×16 (rojo aguayo) generado aquí: el servidor valida las imágenes con Pillow y rechaza archivos dañados.
++function crc32(buf) {
++  let c, crc = 0xffffffff;
++  for (const byte of buf) {
++    c = (crc ^ byte) & 0xff;
++    for (let k = 0; k < 8; k += 1) c = c & 1 ? 0xedb88320 ^ (c >>> 1) : c >>> 1;
++    crc = (crc >>> 8) ^ c;
++  }
++  return (crc ^ 0xffffffff) >>> 0;
++}
++function pngRojo(lado = 16) {
++  const trozo = (tipo, datos) => {
++    const cuerpo = Buffer.concat([Buffer.from(tipo, "ascii"), datos]);
++    const largo = Buffer.alloc(4); largo.writeUInt32BE(datos.length);
++    const crc = Buffer.alloc(4); crc.writeUInt32BE(crc32(cuerpo));
++    return Buffer.concat([largo, cuerpo, crc]);
++  };
++  const ihdr = Buffer.alloc(13); ihdr.writeUInt32BE(lado, 0); ihdr.writeUInt32BE(lado, 4); ihdr[8] = 8; ihdr[9] = 2; // 8 bits, RGB
++  const fila = Buffer.concat([Buffer.from([0]), Buffer.from(Array.from({ length: lado }, () => [200, 22, 29]).flat())]);
++  const crudo = Buffer.concat(Array.from({ length: lado }, () => fila));
++  return Buffer.concat([Buffer.from([137, 80, 78, 71, 13, 10, 26, 10]), trozo("IHDR", ihdr), trozo("IDAT", deflateSync(crudo)), trozo("IEND", Buffer.alloc(0))]);
++}
++const PNG = pngRojo();
++const carpetaTmp = mkdtempSync(join(tmpdir(), "paceno-e2e-"));
++const RUTA_PNG = join(carpetaTmp, "imagen_prueba.png");
++writeFileSync(RUTA_PNG, PNG);
++
++// ---------------------------------------------------------------------------------------------- utilidades
++const resultados = [];
++const hechos = new Set();
++async function caso(id, descripcion, fn, { requiere = [] } = {}) {
++  const faltan = requiere.filter((r) => !hechos.has(r));
++  if (faltan.length) {
++    resultados.push({ id, descripcion, ok: false, omitido: true, detalle: `No ejecutada: depende de ${faltan.join(", ")}` });
++    console.log(`OMITE ${id}  ${descripcion}\n      depende de ${faltan.join(", ")}`);
++    return;
++  }
++  try {
++    await fn();
++    hechos.add(id);
++    resultados.push({ id, descripcion, ok: true });
++    console.log(`OK    ${id}  ${descripcion}`);
++  } catch (error) {
++    const detalle = String(error.message).split("\n")[0];
++    resultados.push({ id, descripcion, ok: false, detalle });
++    console.log(`FALLA ${id}  ${descripcion}\n      ${detalle}`);
++  }
++}
++const igual = (a, b, msg) => { if (JSON.stringify(a) !== JSON.stringify(b)) throw new Error(`${msg}: esperado ${JSON.stringify(b)}, obtenido ${JSON.stringify(a)}`); };
++const cierto = (c, msg) => { if (!c) throw new Error(msg); };
++
++const navegador = await chromium.launch(process.env.PACENO_CHROME ? { executablePath: process.env.PACENO_CHROME } : {});
++const contextos = [];
++async function contexto(opciones = {}) {
++  const c = await navegador.newContext({ viewport: { width: 1366, height: 768 }, locale: "es-BO", ...opciones });
++  // Sin salida a internet o para no depender de OpenStreetMap, las teselas se cortan (el mapa base queda gris).
++  await c.route(/tile\.openstreetmap\.org|cartocdn\.com|fonts\.(googleapis|gstatic)\.com/, (r) => r.abort());
++  contextos.push(c);
++  return c;
++}
++async function pagina(ctx) {
++  const p = await ctx.newPage();
++  p.erroresConsola = [];
++  p.on("pageerror", (e) => p.erroresConsola.push(String(e)));
++  p.on("console", (m) => { if (m.type() === "error" && !/Failed to load resource|net::ERR/.test(m.text())) p.erroresConsola.push(m.text()); });
++  return p;
++}
++async function iniciarSesionPanel(p, { usuario, clave }) {
++  await p.goto(`${API}/admin/login/?next=/admin/`);
++  await p.fill("#id_username", usuario);
++  await p.fill("#id_password", clave);
++  await p.click('input[type="submit"]');
++  await p.waitForSelector("#user-tools, .errornote");
++  if (await p.locator(".errornote").count()) throw new Error(`no se pudo iniciar sesión: ${(await p.locator(".errornote").innerText()).split("\n")[0]}`);
++}
++const foto = (p, nombre, opciones = {}) => p.screenshot({ path: `${SALIDA}/${nombre}.png`, ...opciones });
++const mensajes = (p) => p.locator(".messagelist li").allInnerTexts();
++async function elegirEnSelect2(p, selectId, texto) {
++  const contenedor = p.locator(`#${selectId} + .select2`);
++  await contenedor.click();
++  await p.locator(".select2-search__field").fill(texto);
++  const opcion = p.locator(".select2-results__option", { hasText: texto }).first();
++  await opcion.waitFor();
++  await opcion.click();
++}
++const estado = {}; // datos compartidos entre casos
++
++// =============================================================================================================
++// 1. PWA instalable (manifiesto)
++// =============================================================================================================
++await caso("PWA", "Manifiesto enlazado, válido y sin errores de instalabilidad según Chrome (sin service worker)", async () => {
++  const perfil = mkdtempSync(join(tmpdir(), "paceno-perfil-"));
++  const ctx = await chromium.launchPersistentContext(perfil, process.env.PACENO_CHROME ? { executablePath: process.env.PACENO_CHROME } : {});
++  try {
++    const p = await ctx.newPage();
++    await p.route(/tile\.openstreetmap\.org|fonts\.(googleapis|gstatic)\.com/, (r) => r.abort());
++    await p.goto(`${BASE}/`, { waitUntil: "domcontentloaded" });
++    const cdp = await ctx.newCDPSession(p);
++    await cdp.send("Page.enable");
++    const m = await cdp.send("Page.getAppManifest");
++    igual(m.errors, [], "errores del manifiesto");
++    const datos = JSON.parse(m.data);
++    cierto(/Paceño/.test(datos.name) && datos.display === "standalone", "nombre y modo standalone");
++    const tamanos = datos.icons.map((i) => i.sizes);
++    cierto(tamanos.includes("192x192") && tamanos.includes("512x512"), "iconos 192 y 512");
++    const inst = await cdp.send("Page.getInstallabilityErrors");
++    igual(inst.installabilityErrors, [], "errores de instalabilidad");
++    const sw = await p.evaluate(async () => (await navigator.serviceWorker?.getRegistrations?.())?.length ?? 0);
++    igual(sw, 0, "service workers registrados (no debe haber: sin modo sin conexión)");
++  } finally {
++    await ctx.close();
++  }
++});
++
++// =============================================================================================================
++// 2. Panel editorial (M5 + M1): PT-01, PT-02, PT-04, PT-05, PT-15
++// =============================================================================================================
++const ctxEditor = await contexto();
++const panel = await pagina(ctxEditor);
++
++await caso("PT-21a", "Sin sesión el panel pide autenticación", async () => {
++  const anonimo = await pagina(await contexto());
++  await anonimo.goto(`${API}/admin/`);
++  cierto(/\/admin\/login\//.test(anonimo.url()), `redirige al inicio de sesión (URL: ${anonimo.url()})`);
++  await foto(anonimo, "pt21_sin_sesion_pide_autenticacion");
++});
++
++await caso("EDITOR-login", "El Editor inicia sesión en el panel", async () => {
++  await iniciarSesionPanel(panel, EDITOR);
++  cierto((await panel.locator("#site-name, #branding").first().innerText()).includes("Paceño"), "panel de Paceño");
++  await foto(panel, "panel_editor_inicio");
++});
++
++await caso("PT-01", "Registro de ficha con datos mínimos: se guarda como borrador y no aparece en la API pública", async () => {
++  await panel.goto(`${API}/admin/patrimonio/fuentedocumental/add/`);
++  estado.fuente = `Fuente E2E ${marca}`;
++  await panel.fill("#id_titulo", estado.fuente);
++  await panel.fill("#id_autor_institucion", "Prueba automatizada");
++  await panel.selectOption("#id_tipo_fuente", { index: 1 });
++  await panel.fill("#id_fecha_consulta", "2026-11-19");
++  await panel.click('input[name="_save"]');
++  await panel.waitForSelector(".messagelist");
++  cierto((await panel.locator(".messagelist .success").count()) === 1, "fuente guardada");
++
++  await panel.goto(`${API}/admin/patrimonio/bienpatrimonial/add/`);
++  await panel.fill("#id_nombre", NOMBRE);
++  await panel.fill("#id_descripcion", "Ficha creada por la prueba automatizada de la semana 4.");
++  await panel.selectOption("#id_tipo_patrimonio", { label: "material" });
++  await panel.selectOption("#id_categoria", { index: 1 });
++  await panel.fill("#id_direccion_referencia", "Centro de La Paz (prueba)");
++  await panel.fill("#id_latitud", "-16.4969");
++  await panel.fill("#id_longitud", "-68.1366");
++  await panel.selectOption("#id_estado_publicacion", "borrador");
++  await panel.click('input[name="_continue"]');
++  await panel.waitForSelector("#bienpatrimonial_form");
++  estado.bienId = Number(/\/bienpatrimonial\/(\d+)\/change\//.exec(panel.url())?.[1]);
++  cierto(estado.bienId > 0, "se guardó y se obtuvo el identificador");
++  const lista = await (await panel.request.get(`${BASE}/api/bienes/?page_size=100`)).json();
++  cierto(!lista.results.some((b) => b.id === estado.bienId), "el borrador NO aparece en GET /api/bienes/");
++  igual((await panel.request.get(`${BASE}/api/bienes/${estado.bienId}/`)).status(), 404, "detalle del borrador");
++  await foto(panel, "pt01_ficha_borrador_en_panel");
++});
++
++await caso("PT-02", "Publicar una ficha sin fuente se rechaza informando el motivo; sigue sin ser pública", async () => {
++  await panel.goto(`${API}/admin/patrimonio/bienpatrimonial/${estado.bienId}/change/`);
++  await panel.selectOption("#id_estado_publicacion", "publicado");
++  await panel.click('input[name="_continue"]');
++  await panel.waitForSelector(".messagelist");
++  const texto = (await mensajes(panel)).join(" ");
++  cierto(/NO se public/i.test(texto) && /fuente documental/i.test(texto), `mensaje de rechazo con el motivo: «${texto.slice(0, 160)}»`);
++  await foto(panel, "pt02_publicacion_rechazada_sin_fuente");
++  igual((await panel.request.get(`${BASE}/api/bienes/${estado.bienId}/`)).status(), 404, "sigue sin ser pública");
++}, { requiere: ["PT-01"] });
++
++await caso("PT-05", "Una imagen sin autor o sin licencia se rechaza (validación del servidor)", async () => {
++  await panel.goto(`${API}/admin/patrimonio/bienpatrimonial/${estado.bienId}/change/`);
++  await panel.locator("#recursos-group .add-row a").click();
++  await panel.setInputFiles("#id_recursos-0-archivo", RUTA_PNG);
++  // Se envía sin autor ni licencia desactivando la validación HTML5 para comprobar la del servidor.
++  await panel.evaluate(() => { document.querySelector("#bienpatrimonial_form").noValidate = true; });
++  await panel.click('input[name="_continue"]');
++  await panel.waitForSelector(".errornote, .errorlist");
++  await panel.waitForSelector(".errorlist");
++  const errores = await panel.locator("#recursos-group .errorlist").allInnerTexts();
++  // El rechazo debe deberse a la falta de autor Y de licencia (no a un archivo dañado).
++  cierto(errores.length >= 2 && errores.every((e) => /requerido|requiere|obligatorio/i.test(e)), `faltan avisos de autor y licencia: ${JSON.stringify(errores)}`);
++  cierto(errores.some((e) => /autor/i.test(e)), "avisa de que falta el autor");
++  cierto(!errores.some((e) => /imagen válida/i.test(e)), "el archivo de prueba es una imagen válida");
++  await foto(panel, "pt05_imagen_sin_autor_ni_licencia_rechazada");
++  // La ficha sigue sin imágenes guardadas
++  await panel.goto(`${API}/admin/patrimonio/bienpatrimonial/${estado.bienId}/change/`);
++  igual(await panel.locator("#recursos-group .inline-related:not(.empty-form)").count(), 0, "no se guardó ninguna imagen");
++}, { requiere: ["PT-01"] });
++
++await caso("PT-04", "Una ficha completa (fuente + imagen con autor y licencia) se publica y aparece en GET /api/bienes/", async () => {
++  await panel.goto(`${API}/admin/patrimonio/bienpatrimonial/${estado.bienId}/change/`);
++  await elegirEnSelect2(panel, "id_bien_fuentes-0-fuente", estado.fuente);
++  await panel.locator("#recursos-group .add-row a").click();
++  await panel.setInputFiles("#id_recursos-0-archivo", RUTA_PNG);
++  await panel.fill("#id_recursos-0-texto_alternativo", "Imagen de prueba automatizada");
++  await panel.fill("#id_recursos-0-autor", "Autora de Prueba E2E");
++  await panel.selectOption("#id_recursos-0-licencia", { label: "CC BY 4.0" });
++  await panel.check("#id_recursos-0-es_portada");
++  await panel.selectOption("#id_estado_publicacion", "publicado");
++  await foto(panel, "pt04_ficha_completa_lista_para_publicar", { fullPage: true });
++  await panel.click('input[name="_continue"]');
++  await panel.waitForSelector(".messagelist");
++  const texto = (await mensajes(panel)).join(" ");
++  cierto(!/NO se public/i.test(texto), `sin rechazo: «${texto.slice(0, 200)}»`);
++  igual(await panel.locator("#id_estado_publicacion").inputValue(), "publicado", "estado guardado");
++  const detalle = await (await panel.request.get(`${BASE}/api/bienes/${estado.bienId}/`)).json();
++  igual(detalle.nombre, NOMBRE, "aparece en la API pública");
++  cierto(detalle.fuentes.length === 1 && detalle.imagenes.length === 1, "con su fuente y su imagen");
++  igual([detalle.imagenes[0].autor, detalle.imagenes[0].licencia], ["Autora de Prueba E2E", "CC BY 4.0"], "atribución de la imagen");
++  const lista = await (await panel.request.get(`${BASE}/api/bienes/?page_size=100`)).json();
++  cierto(lista.results.some((b) => b.id === estado.bienId), "está en GET /api/bienes/");
++}, { requiere: ["PT-02", "PT-05"] });
++
++await caso("PT-15", "Una actividad con dos opciones correctas (o ninguna) se rechaza; con exactamente una se guarda", async () => {
++  await panel.goto(`${API}/admin/patrimonio/actividad/add/`);
++  await elegirEnSelect2(panel, "id_bien", NOMBRE);
++  await panel.fill("#id_enunciado", "¿Cuál es la opción correcta de esta prueba?");
++  await panel.fill("#id_retroalimentacion", "Porque así se definió en la prueba automatizada.");
++  await panel.fill("#id_puntos", "10");
++  const opciones = ["Opción incorrecta A", "Opción correcta E2E", "Opción incorrecta B", "Opción incorrecta C"];
++  for (const [i, texto] of opciones.entries()) await panel.fill(`#id_opciones-${i}-texto`, texto);
++  // a) dos correctas
++  await panel.check("#id_opciones-0-es_correcta");
++  await panel.check("#id_opciones-1-es_correcta");
++  await panel.click('input[name="_continue"]');
++  await panel.waitForSelector(".errornote, .errorlist");
++  cierto(/exactamente una/i.test(await panel.locator(".errorlist").first().innerText()), "rechaza dos correctas");
++  await foto(panel, "pt15_dos_opciones_correctas_rechazadas");
++  // b) ninguna correcta
++  await panel.uncheck("#id_opciones-0-es_correcta");
++  await panel.uncheck("#id_opciones-1-es_correcta");
++  await panel.click('input[name="_continue"]');
++  await panel.waitForSelector(".errornote, .errorlist");
++  cierto(/exactamente una/i.test(await panel.locator(".errorlist").first().innerText()), "rechaza ninguna correcta");
++  // c) exactamente una
++  await panel.check("#id_opciones-1-es_correcta");
++  await panel.click('input[name="_continue"]');
++  await panel.waitForSelector(".messagelist");
++  cierto(!(await panel.locator(".errornote").count()), "se guarda con una sola correcta");
++}, { requiere: ["PT-04"] });
++
++// =============================================================================================================
++// 3. La PWA (M2, M3, M4): visitante sin cuenta
++// =============================================================================================================
++const ctxVisitante = await contexto();
++const visita = await pagina(ctxVisitante);
++
++await caso("PT-06/07", "El visitante localiza la ficha nueva en la lista (búsqueda sin mayúsculas ni tildes) y en el mapa", async () => {
++  await visita.goto(`${BASE}/explorar`);
++  await visita.waitForSelector(".lista .tarjeta", { state: "attached" });
++  const buscar = async (texto) => {
++    // La consulta se compara ya decodificada: los espacios viajan como «+» o «%20» según quién arme la URL.
++    const respuesta = visita.waitForResponse((r) => r.url().includes("/api/bienes/") && new URL(r.url()).searchParams.get("q") === texto.trim());
++    await visita.fill('input[type="search"]', texto);
++    await respuesta;
++    await visita.waitForLoadState("networkidle");
++    return visita.locator(".lista .tarjeta__titulo").allInnerTexts();
++  };
++  cierto((await buscar(NOMBRE.toUpperCase())).includes(NOMBRE), "búsqueda en MAYÚSCULAS");
++  cierto((await buscar(NOMBRE.toLowerCase())).includes(NOMBRE), "búsqueda en minúsculas");
++  const enApi = (await (await visita.request.get(`${BASE}/api/bienes/?page_size=100`)).json()).results.filter((b) => b.tiene_ubicacion).length;
++  await visita.fill('input[type="search"]', "");
++  await visita.waitForFunction((n) => document.querySelectorAll(".marcador").length === n, enApi, { timeout: 10000 });
++  await foto(visita, "pt06_lista_y_mapa_con_la_ficha_nueva");
++}, { requiere: ["PT-04"] });
++
++await caso("PT-09", "La ficha muestra fuente e imagen con autor y licencia (datos reales cargados desde el panel)", async () => {
++  await visita.goto(`${BASE}/bienes/${estado.bienId}`);
++  await visita.waitForSelector("article h1");
++  igual(await visita.locator("article h1").innerText(), NOMBRE, "título");
++  cierto((await visita.locator(".fuentes li").first().innerText()).includes(estado.fuente), "fuente visible");
++  const pie = await visita.locator(".galeria figcaption").innerText();
++  cierto(pie.includes("Autora de Prueba E2E") && pie.includes("CC BY 4.0"), `atribución visible: ${pie}`);
++  await foto(visita, "pt09_ficha_con_fuente_e_imagen_atribuida", { fullPage: true });
++}, { requiere: ["PT-04"] });
++
++await caso("PT-12", "La API no revela la opción correcta antes de responder; una respuesta correcta devuelve acierto y explicación", async () => {
++  const lista = await (await visita.request.get(`${BASE}/api/bienes/${estado.bienId}/actividades/`)).json();
++  igual(lista.length, 1, "una actividad activa");
++  const crudo = JSON.stringify(lista);
++  cierto(!/es_correcta|opcion_correcta|retroalimentacion/.test(crudo), "la lista de actividades no incluye la respuesta ni la explicación");
++  estado.actividad = lista[0];
++  estado.opcionCorrecta = lista[0].opciones.find((o) => o.texto === "Opción correcta E2E").id;
++  estado.opcionMala = lista[0].opciones.find((o) => o.texto === "Opción incorrecta A").id;
++  const r = await (await visita.request.post(`${BASE}/api/actividades/${estado.actividad.id}/responder/`, { data: { opcion: estado.opcionCorrecta } })).json();
++  igual([r.correcta, r.opcion_correcta, r.puntos], [true, estado.opcionCorrecta, 10], "respuesta correcta");
++  cierto(/prueba automatizada/.test(r.retroalimentacion), "incluye la explicación");
++}, { requiere: ["PT-15"] });
++
++await caso("PT-13", "Respuesta incorrecta en la PWA: indica el error, muestra explicación, no revela la correcta y permite reintentar", async () => {
++  const mala = await (await visita.request.post(`${BASE}/api/actividades/${estado.actividad.id}/responder/`, { data: { opcion: estado.opcionMala } })).json();
++  igual([mala.correcta, mala.opcion_correcta, mala.puntos], [false, null, 0], "API: incorrecta sin revelar la correcta");
++  await visita.goto(`${BASE}/bienes/${estado.bienId}`);
++  await visita.getByRole("button", { name: "Practicar con este bien" }).click();
++  await visita.waitForSelector(".actividad");
++  await visita.locator(".actividad__opcion", { hasText: "Opción incorrecta A" }).click();
++  await visita.getByRole("button", { name: "Responder" }).click();
++  await visita.waitForSelector(".resultado--mal");
++  const texto = await visita.locator(".resultado--mal").innerText();
++  cierto(/Todav[ií]a no/.test(texto) && /prueba automatizada/.test(texto), `error + explicación: «${texto.replace(/\n/g, " ")}»`);
++  cierto(!/Opción correcta E2E/.test(texto), "no revela cuál era la correcta");
++  await foto(visita, "pt13_respuesta_incorrecta_con_explicacion");
++  await visita.getByRole("button", { name: "Intentar de nuevo" }).click();
++  cierto(await visita.getByRole("button", { name: "Responder" }).isVisible(), "se puede reintentar");
++}, { requiere: ["PT-12"] });
++
++await caso("PT-14", "Acertar tras reintentar suma los puntos una sola vez y se conservan al recargar la página", async () => {
++  // Estado de partida: contexto nuevo sin puntos (localStorage vacío)
++  const puntos = async () => Number(await visita.locator(".practicar__puntaje strong").innerText());
++  igual(await puntos(), 0, "puntuación inicial");
++  await visita.locator(".actividad__opcion", { hasText: "Opción correcta E2E" }).click();
++  await visita.getByRole("button", { name: "Responder" }).click();
++  await visita.waitForSelector(".resultado--ok");
++  cierto(/\+10 puntos/.test(await visita.locator(".resultado--ok").innerText()), "suma 10 puntos");
++  igual(await puntos(), 10, "puntuación tras acertar");
++  await foto(visita, "pt14_respuesta_correcta_suma_puntos");
++  // Recarga: los puntos siguen en el navegador
++  await visita.reload();
++  await visita.getByRole("button", { name: "Practicar con este bien" }).click();
++  await visita.waitForSelector(".actividad");
++  igual(await puntos(), 10, "puntuación tras recargar");
++  // Repetir el acierto no suma otra vez
++  await visita.locator(".actividad__opcion", { hasText: "Opción correcta E2E" }).click();
++  await visita.getByRole("button", { name: "Responder" }).click();
++  await visita.waitForSelector(".resultado--ok");
++  cierto(/Ya hab[ií]as sumado/.test(await visita.locator(".resultado--ok").innerText()), "avisa que ya sumó");
++  igual(await puntos(), 10, "no se suma dos veces");
++  // El servidor no guarda la puntuación (RN-05)
++  const guardado = await visita.evaluate(() => localStorage.getItem("paceno.puntaje.v1"));
++  cierto(guardado && JSON.parse(guardado)[estado.actividad.id] === 10, "guardada en localStorage del navegador");
++}, { requiere: ["PT-13"] });
++
++await caso("PT-16", "Un reporte válido enviado desde la ficha se guarda con estado «nuevo» y fecha", async () => {
++  await visita.goto(`${BASE}/bienes/${estado.bienId}`);
++  await visita.getByRole("button", { name: "Reportar un problema con esta ficha" }).click();
++  await visita.waitForSelector(".formulario");
++  const botonInicial = visita.getByRole("button", { name: "Enviar reporte" });
++  cierto(await botonInicial.isDisabled(), "con el formulario vacío no se puede enviar");
++  await visita.locator(".formulario select").selectOption({ index: 1 });
++  await visita.locator(".formulario textarea").fill(`La información de la ficha necesita revisión (${TOKEN_REPORTE}).`);
++  await foto(visita, "pt16_formulario_de_reporte");
++  const respuesta = visita.waitForResponse((r) => r.url().endsWith("/api/reportes/") && r.request().method() === "POST");
++  await botonInicial.click();
++  const r = await respuesta;
++  igual(r.status(), 201, "HTTP 201");
++  const cuerpo = await r.json();
++  igual(cuerpo.estado, "nuevo", "estado inicial");
++  estado.reporteId = cuerpo.id;
++  cierto(await visita.getByText("¡Gracias! Recibimos tu reporte.").isVisible(), "confirmación al visitante");
++  await foto(visita, "pt16_reporte_enviado");
++}, { requiere: ["PT-14"] });
++
++await caso("PT-17", "Un reporte sin tipo, con más de 500 caracteres o sobre un bien no publicado se rechaza", async () => {
++  const tipos = await (await visita.request.get(`${BASE}/api/tipos-reporte/`)).json();
++  const valido = { bien: estado.bienId, tipo_reporte: tipos[0].id, descripcion: "Texto válido" };
++  const envio = (datos) => visita.request.post(`${BASE}/api/reportes/`, { data: datos });
++  igual((await envio({ bien: valido.bien, descripcion: "sin tipo" })).status(), 400, "sin tipo");
++  igual((await envio({ ...valido, descripcion: "x".repeat(501) })).status(), 400, "501 caracteres");
++  // Un bien no publicado: se usa un identificador inexistente/no público (la propia ficha desactivada al final se prueba aparte)
++  igual((await envio({ ...valido, bien: 99999999 })).status(), 400, "bien inexistente o no publicado");
++  // En la interfaz el formulario impide enviar sin tipo y no admite más de 500 caracteres
++  await visita.goto(`${BASE}/bienes/${estado.bienId}`);
++  await visita.getByRole("button", { name: "Reportar un problema con esta ficha" }).click();
++  await visita.locator(".formulario textarea").fill("y".repeat(600));
++  igual((await visita.locator(".formulario textarea").inputValue()).length, 500, "el campo limita a 500");
++  cierto(await visita.getByRole("button", { name: "Enviar reporte" }).isDisabled(), "sin tipo no se puede enviar");
++}, { requiere: ["PT-16"] });
++
++await caso("PT-17b", "Un reporte sobre una ficha NO publicada (borrador) se rechaza", async () => {
++  // Se crea un borrador desde el panel y se intenta reportarlo.
++  await panel.goto(`${API}/admin/patrimonio/bienpatrimonial/add/`);
++  await panel.fill("#id_nombre", `${NOMBRE} borrador`);
++  await panel.fill("#id_descripcion", "Borrador de prueba");
++  await panel.selectOption("#id_tipo_patrimonio", { label: "material" });
++  await panel.selectOption("#id_categoria", { index: 1 });
++  await panel.selectOption("#id_estado_publicacion", "borrador");
++  await panel.click('input[name="_continue"]');
++  await panel.waitForSelector("#bienpatrimonial_form");
++  const borradorId = Number(/\/bienpatrimonial\/(\d+)\/change\//.exec(panel.url())?.[1]);
++  const tipos = await (await visita.request.get(`${BASE}/api/tipos-reporte/`)).json();
++  const r = await visita.request.post(`${BASE}/api/reportes/`, { data: { bien: borradorId, tipo_reporte: tipos[0].id, descripcion: "no debe aceptarse" } });
++  igual(r.status(), 400, "borrador no reportable");
++  cierto(/no existe o no est/i.test(JSON.stringify(await r.json())), "mensaje comprensible");
++  estado.borradorId = borradorId;
++}, { requiere: ["PT-01"] });
++
++// =============================================================================================================
++// 4. Revisión editorial del reporte (M4 + M5): PT-19, PT-20
++// =============================================================================================================
++await caso("PT-19/20", "El Editor revisa el reporte, solo ve transiciones válidas y el cambio guarda revisor y fecha", async () => {
++  await panel.goto(`${API}/admin/patrimonio/reporteciudadano/?q=${TOKEN_REPORTE}`);
++  await panel.waitForSelector("#result_list");
++  await foto(panel, "pt19_bandeja_de_reportes");
++  await panel.locator("#result_list th.field-id a, #result_list .field-id a").first().click();
++  await panel.waitForSelector("#id_estado");
++  // Desde «nuevo» solo se puede ir a «en revisión» o «descartado» (no a «atendido»)
++  const desde = await panel.locator("#id_estado option").allInnerTexts();
++  igual(desde.map((t) => t.trim()).sort(), ["descartado", "en revisión", "nuevo"], "opciones desde «nuevo»");
++  await panel.selectOption("#id_estado", { label: "en revisión" });
++  await panel.fill("#id_nota_revision", "Revisado por la prueba automatizada.");
++  await panel.click('input[name="_continue"]');
++  await panel.waitForSelector(".messagelist");
++  // Ahora «en revisión» → atendido | descartado (no vuelve a «nuevo»)
++  const luego = (await panel.locator("#id_estado option").allInnerTexts()).map((t) => t.trim()).sort();
++  igual(luego, ["atendido", "descartado", "en revisión"], "opciones desde «en revisión»");
++  const fila = await panel.locator("#historial-group tbody tr:not(.empty-form)").first().innerText();
++  cierto(fila.includes(EDITOR.usuario), `el historial guarda el revisor (${EDITOR.usuario})`);
++  cierto(/\d{4}|\d{1,2}:\d{2}/.test(fila), "el historial guarda la fecha");
++  cierto(fila.includes("nuevo") && fila.includes("en revisión"), "estado anterior y nuevo");
++  await foto(panel, "pt20_reporte_revisado_con_historial", { fullPage: true });
++  // Cerrar el reporte: atendido (estado final) → queda de solo lectura
++  await panel.selectOption("#id_estado", { label: "atendido" });
++  await panel.click('input[name="_continue"]');
++  await panel.waitForSelector(".messagelist");
++  cierto(await panel.locator("#id_estado").isDisabled(), "un estado final no se puede modificar");
++}, { requiere: ["PT-16"] });
++
++await caso("PT-25", "Flujo completo: ficha publicada desde el panel → vista en la PWA → actividad → reporte → revisión editorial", async () => {
++  // Cada eslabón ya se verificó en un caso previo; PT-25 exige que todos se hayan cumplido sobre la MISMA ficha.
++  for (const previo of ["PT-04", "PT-09", "PT-12", "PT-14", "PT-16", "PT-19/20"]) cierto(hechos.has(previo), `falta ${previo}`);
++  const reporte = await panel.request.get(`${API}/admin/patrimonio/reporteciudadano/${estado.reporteId}/change/`);
++  igual(reporte.status(), 200, "el reporte existe en la base de datos y se abre en el panel");
++  await foto(visita, "pt25_flujo_completo_visitante_final");
++}, { requiere: ["PT-04", "PT-09", "PT-12", "PT-14", "PT-16", "PT-19/20"] });
++
++// =============================================================================================================
++// 5. Permisos y cuentas (M5): PT-21, PT-22, PT-23
++// =============================================================================================================
++await caso("PT-21b", "El Editor no accede a la gestión de usuarios ni de grupos (el servidor responde 403)", async () => {
++  for (const ruta of ["/admin/auth/user/", "/admin/auth/user/add/", "/admin/auth/group/", "/admin/admin/logentry/"]) {
++    const r = await panel.goto(`${API}${ruta}`);
++    igual(r.status(), 403, `GET ${ruta}`);
++  }
++  await foto(panel, "pt21_editor_sin_acceso_a_usuarios");
++  await panel.goto(`${API}/admin/`);
++  cierto(!(await panel.content()).includes("/admin/auth/user/"), "el menú del Editor no ofrece usuarios");
++}, { requiere: ["EDITOR-login"] });
++
++const ctxAdmin = await contexto();
++const admin = await pagina(ctxAdmin);
++await caso("PT-22", "El Administrador crea una cuenta, la cuenta ingresa; al desactivarla ya no puede ingresar", async () => {
++  await iniciarSesionPanel(admin, ADMIN);
++  await admin.goto(`${API}/admin/auth/user/add/`);
++  await admin.fill("#id_username", CUENTA_NUEVA);
++  await admin.fill("#id_password1", CLAVE_NUEVA);
++  await admin.fill("#id_password2", CLAVE_NUEVA);
++  await admin.click('input[name="_save"]');
++  await admin.waitForSelector("#user_form");
++  await admin.check("#id_is_staff");
++  await admin.locator("#id_groups_from option", { hasText: "Editor" }).dblclick();
++  await admin.click('input[name="_continue"]');
++  await admin.waitForSelector(".messagelist");
++  await foto(admin, "pt22_cuenta_creada_por_el_administrador", { fullPage: true });
++
++  const activo = await pagina(await contexto());
++  await iniciarSesionPanel(activo, { usuario: CUENTA_NUEVA, clave: CLAVE_NUEVA }); // ingresa
++
++  await admin.uncheck("#id_is_active");
++  await admin.click('input[name="_continue"]');
++  await admin.waitForSelector(".messagelist");
++  igual(await admin.locator("#id_is_active").isChecked(), false, "cuenta desactivada");
++
++  const bloqueado = await pagina(await contexto());
++  let fallo = null;
++  try { await iniciarSesionPanel(bloqueado, { usuario: CUENTA_NUEVA, clave: CLAVE_NUEVA }); } catch (e) { fallo = e.message; }
++  cierto(fallo, "la cuenta desactivada NO debe poder ingresar");
++  await foto(bloqueado, "pt22_cuenta_desactivada_no_ingresa");
++}, { requiere: [] });
++
++await caso("PT-23", "Editar una ficha deja constancia en el historial con usuario y fecha (panel y registro de cambios)", async () => {
++  await admin.goto(`${API}/admin/admin/logentry/?q=${encodeURIComponent(NOMBRE)}`);
++  await admin.waitForSelector("#result_list");
++  const filas = await admin.locator("#result_list tbody tr").allInnerTexts();
++  cierto(filas.some((f) => f.includes(NOMBRE) && f.includes(EDITOR.usuario)), "el registro de cambios muestra la ficha y al Editor que la editó");
++  await foto(admin, "pt23_historial_de_cambios_del_panel");
++  // Historial de estados de la propia ficha (borrador → publicado) con usuario
++  await admin.goto(`${API}/admin/patrimonio/bienpatrimonial/${estado.bienId}/change/`);
++  const hist = (await admin.locator("#historial-group tbody tr:not(.empty-form)").allInnerTexts()).filter((t) => t.trim());
++  cierto(hist.length >= 2 && hist.every((h) => h.includes(EDITOR.usuario)), "historial de estados con usuario y fecha");
++  cierto(hist.some((h) => /Publicado|publicado/.test(h)), "registra la publicación");
++}, { requiere: ["PT-04"] });
++
++// =============================================================================================================
++// 6. PT-18 frecuencia de envío (429). Se deja al final de las pruebas de envío porque agota el límite por IP.
++// =============================================================================================================
++await caso("PT-18", "Enviar reportes repetidos supera el límite: la API responde 429 y la PWA lo comunica", async () => {
++  const tipos = await (await visita.request.get(`${BASE}/api/tipos-reporte/`)).json();
++  let estatus429 = null;
++  for (let i = 0; i < 80 && estatus429 === null; i += 1) {
++    const r = await visita.request.post(`${BASE}/api/reportes/`, { data: { bien: estado.bienId, tipo_reporte: tipos[0].id, descripcion: `prueba de frecuencia ${marca} #${i}` } });
++    if (r.status() === 429) estatus429 = i;
++    else igual(r.status(), 201, "envíos previos al límite");
++  }
++  cierto(estatus429 !== null, "se alcanzó el límite (HTTP 429)");
++  await visita.goto(`${BASE}/bienes/${estado.bienId}`);
++  await visita.getByRole("button", { name: "Reportar un problema con esta ficha" }).click();
++  await visita.locator(".formulario select").selectOption({ index: 1 });
++  await visita.locator(".formulario textarea").fill("Otro reporte inmediatamente después.");
++  await visita.getByRole("button", { name: "Enviar reporte" }).click();
++  await visita.waitForSelector(".estado--error, [role='alert']");
++  const aviso = await visita.locator(".estado--error, [role='alert']").first().innerText();
++  cierto(/varios reportes seguidos/i.test(aviso), `mensaje comprensible: «${aviso.replace(/\n/g, " ")}»`);
++  cierto(await visita.locator(".formulario").isVisible(), "la interfaz no queda en un estado inconsistente (el formulario sigue disponible)");
++  await foto(visita, "pt18_limite_de_frecuencia_429");
++}, { requiere: ["PT-16"] });
++
++// =============================================================================================================
++// 7. PT-24 adaptación: páginas del recorrido, sin desbordes ni errores de consola
++// =============================================================================================================
++for (const [ancho, alto] of [[360, 740], [768, 1024], [1366, 768]]) {
++  await caso("PT-24", `Adaptación a ${ancho} px: portada, mapa/lista, rutas y ficha con «Practicar» y «Reportar» abiertos, sin desbordes`, async () => {
++    const p = await pagina(await contexto({ viewport: { width: ancho, height: alto } }));
++    const desborde = () => p.evaluate(() => document.documentElement.scrollWidth - window.innerWidth);
++    const rutas = [["/", "portada"], ["/explorar", "explorar"], ["/rutas", "rutas"], [`/bienes/${estado.bienId ?? 1}`, "ficha"]];
++    for (const [ruta, nombre] of rutas) {
++      await p.goto(`${BASE}${ruta}`);
++      await p.waitForLoadState("networkidle");
++      cierto((await desborde()) <= 0, `desborde horizontal de ${await desborde()}px en ${nombre}`);
++    }
++    // Ficha con ambas secciones abiertas
++    await p.getByRole("button", { name: "Practicar con este bien" }).click();
++    await p.waitForSelector(".actividad, .practicar .sin-imagenes");
++    await p.getByRole("button", { name: "Reportar un problema con esta ficha" }).click();
++    await p.waitForSelector(".formulario");
++    cierto((await desborde()) <= 0, `desborde en la ficha con secciones abiertas: ${await desborde()}px`);
++    // Controles táctiles: botones principales con área mínima razonable (≥ 32 px de alto)
++    const bajos = await p.evaluate(() => [...document.querySelectorAll(".practicar button, .reportar button, .formulario button")].filter((b) => b.offsetParent && b.getBoundingClientRect().height < 32).map((b) => b.innerText.trim()));
++    igual(bajos, [], "botones con altura menor a 32 px");
++    igual(p.erroresConsola, [], "errores de consola");
++    await foto(p, `pt24_${ancho}px_ficha_practicar_y_reportar`, { fullPage: true });
++  }, { requiere: ["PT-04"] });
++}
++
++// =============================================================================================================
++// Limpieza: la ficha de prueba se desactiva para que no aparezca en el catálogo público.
++// =============================================================================================================
++async function limpiar() {
++  for (const id of [estado.bienId, estado.borradorId].filter(Boolean)) {
++    try {
++      await panel.goto(`${API}/admin/patrimonio/bienpatrimonial/${id}/change/`);
++      await panel.selectOption("#id_estado_publicacion", "desactivado");
++      await panel.click('input[name="_save"]');
++      await panel.waitForSelector(".messagelist");
++    } catch (e) {
++      console.log(`AVISO no se pudo desactivar la ficha de prueba #${id}: ${String(e.message).split("\n")[0]}. Hágalo desde el panel.`);
++    }
++  }
++}
++await limpiar();
++for (const c of contextos) await c.close().catch(() => {});
++await navegador.close();
++
++const fallos = resultados.filter((r) => !r.ok);
++const md = [
++  "# Resultados e2e de la semana 4", "",
++  `Fecha: ${new Date().toISOString()}`, `Entorno: ${BASE} (PWA) · ${API} (API y panel) · ${process.platform}`, "",
++  "| Caso | Descripción | Resultado |", "|---|---|---|",
++  ...resultados.map((r) => `| ${r.id} | ${r.descripcion} | ${r.ok ? "OK" : r.omitido ? r.detalle : "FALLA: " + r.detalle} |`),
++  "", `Total: ${resultados.length}; fallos u omitidos: ${fallos.length}`, "",
++].join("\n");
++writeFileSync(`${SALIDA}/resultados_e2e.md`, md);
++console.log(`\n${resultados.length - fallos.length}/${resultados.length} casos OK`);
++process.exit(fallos.length ? 1 : 0);
+diff --git a/frontend/index.html b/frontend/index.html
+index bd19aba..c095a09 100644
+--- a/frontend/index.html
++++ b/frontend/index.html
+@@ -6,6 +6,8 @@
+     <meta name="theme-color" content="#c8161d" />
+     <meta name="description" content="Descubre, aprende y cuida el patrimonio cultural de La Paz." />
+     <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
++    <link rel="manifest" href="/manifest.webmanifest" />
++    <link rel="apple-touch-icon" href="/assets/icons/apple-touch-icon.png" />
+     <link rel="preconnect" href="https://fonts.googleapis.com" />
+     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+     <link
+diff --git a/frontend/package.json b/frontend/package.json
+index 19ef81e..61a297c 100644
+--- a/frontend/package.json
++++ b/frontend/package.json
+@@ -8,7 +8,8 @@
+     "build": "vite build",
+     "preview": "vite preview",
+     "test": "vitest run",
+-    "e2e": "node e2e/semana2.e2e.mjs"
++    "e2e": "node e2e/semana2.e2e.mjs",
++    "e2e:semana4": "node e2e/semana4.e2e.mjs"
+   },
+   "dependencies": {
+     "leaflet": "1.9.4",
+diff --git a/frontend/public/assets/icons/apple-touch-icon.png b/frontend/public/assets/icons/apple-touch-icon.png
+new file mode 100644
+index 0000000000000000000000000000000000000000..ca038986fa746a732488e0e37288b85819207c73
+GIT binary patch
+literal 5477
+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
+Q007{*iWa;YX7T3#0N|%<!2kdN
+
+literal 0
+HcmV?d00001
+
+diff --git a/frontend/public/assets/icons/icon-192.png b/frontend/public/assets/icons/icon-192.png
+new file mode 100644
+index 0000000000000000000000000000000000000000..a7b9b6939e99ee953189b50b2b5cd588d24145ea
+GIT binary patch
+literal 5796
+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
+bh<hMVHP?tWpb4)7004l#Rfkl_y$|^x+$bbT
+
+literal 0
+HcmV?d00001
+
+diff --git a/frontend/public/assets/icons/icon-512.png b/frontend/public/assets/icons/icon-512.png
+new file mode 100644
+index 0000000000000000000000000000000000000000..325142a3eca83ecf2bffdb6656b0e601ffefba22
+GIT binary patch
+literal 15619
+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
+V^aJlU=JJo?Cy$>hmMB<+{tvowlvV%$
+
+literal 0
+HcmV?d00001
+
+diff --git a/frontend/public/assets/icons/icon-maskable-512.png b/frontend/public/assets/icons/icon-maskable-512.png
+new file mode 100644
+index 0000000000000000000000000000000000000000..93bee31120254b40f51a5251ad32203688c31faf
+GIT binary patch
+literal 13542
+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
+
+literal 0
+HcmV?d00001
+
+diff --git a/frontend/public/manifest.webmanifest b/frontend/public/manifest.webmanifest
+new file mode 100644
+index 0000000..796a6a5
+--- /dev/null
++++ b/frontend/public/manifest.webmanifest
+@@ -0,0 +1,20 @@
++{
++  "id": "/",
++  "name": "Paceño · Patrimonio cultural de La Paz",
++  "short_name": "Paceño",
++  "description": "Descubre, aprende y cuida el patrimonio cultural del centro de La Paz.",
++  "lang": "es",
++  "dir": "ltr",
++  "start_url": "/",
++  "scope": "/",
++  "display": "standalone",
++  "orientation": "any",
++  "background_color": "#ffffff",
++  "theme_color": "#c8161d",
++  "categories": ["education", "travel"],
++  "icons": [
++    { "src": "/assets/icons/icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any" },
++    { "src": "/assets/icons/icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any" },
++    { "src": "/assets/icons/icon-maskable-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
++  ]
++}
+diff --git a/frontend/src/pwa.test.js b/frontend/src/pwa.test.js
+new file mode 100644
+index 0000000..e7c444a
+--- /dev/null
++++ b/frontend/src/pwa.test.js
+@@ -0,0 +1,81 @@
++// Semana 4: configuración instalable de la PWA. Comprueba el manifiesto, sus iconos y el enlace en index.html.
++// No hay service worker: el funcionamiento sin conexión NO forma parte del MVP y no debe presentarse como implementado.
++import { existsSync, readFileSync, readdirSync, statSync } from "node:fs";
++import { join } from "node:path";
++import { describe, expect, it } from "vitest";
++
++const RAIZ = process.cwd(); // vitest se ejecuta desde frontend/
++const publico = (ruta) => join(RAIZ, "public", ruta.replace(/^\//, ""));
++const manifiesto = JSON.parse(readFileSync(publico("manifest.webmanifest"), "utf8"));
++
++/** Ancho y alto leídos de la cabecera IHDR de un PNG. */
++function dimensionesPng(ruta) {
++  const b = readFileSync(ruta);
++  expect(b.subarray(1, 4).toString("ascii")).toBe("PNG");
++  return [b.readUInt32BE(16), b.readUInt32BE(20)];
++}
++
++describe("manifiesto de la PWA", () => {
++  it("define nombre, inicio, ámbito y modo de pantalla instalable", () => {
++    expect(manifiesto.name).toMatch(/Paceño/);
++    expect(manifiesto.short_name.length).toBeLessThanOrEqual(12);
++    expect(manifiesto.start_url).toBe("/");
++    expect(manifiesto.scope).toBe("/");
++    expect(["standalone", "minimal-ui", "fullscreen"]).toContain(manifiesto.display);
++    expect(manifiesto.lang).toBe("es");
++  });
++
++  it("usa los mismos colores que la interfaz (theme-color de index.html)", () => {
++    const html = readFileSync(join(RAIZ, "index.html"), "utf8");
++    const tema = /<meta name="theme-color" content="(#[0-9a-f]{6})"/i.exec(html)?.[1];
++    expect(manifiesto.theme_color.toLowerCase()).toBe(tema.toLowerCase());
++    expect(manifiesto.background_color).toMatch(/^#[0-9a-f]{6}$/i);
++  });
++
++  it("incluye iconos de 192 y 512 px que existen y tienen las dimensiones declaradas", () => {
++    const tamanos = manifiesto.icons.map((i) => i.sizes);
++    expect(tamanos).toContain("192x192");
++    expect(tamanos).toContain("512x512");
++    for (const icono of manifiesto.icons) {
++      expect(existsSync(publico(icono.src)), `falta ${icono.src}`).toBe(true);
++      const [ancho, alto] = icono.sizes.split("x").map(Number);
++      expect(dimensionesPng(publico(icono.src))).toEqual([ancho, alto]);
++      expect(icono.type).toBe("image/png");
++    }
++  });
++
++  it("ofrece un icono «any» y uno «maskable» de 512 px", () => {
++    const de512 = manifiesto.icons.filter((i) => i.sizes === "512x512").map((i) => i.purpose);
++    expect(de512).toContain("any");
++    expect(de512).toContain("maskable");
++  });
++});
++
++describe("index.html", () => {
++  const html = readFileSync(join(RAIZ, "index.html"), "utf8");
++
++  it("enlaza el manifiesto y el icono de iOS", () => {
++    expect(html).toMatch(/<link rel="manifest" href="\/manifest\.webmanifest"/);
++    const ios = /<link rel="apple-touch-icon" href="([^"]+)"/.exec(html)?.[1];
++    expect(ios).toBeTruthy();
++    expect(existsSync(publico(ios))).toBe(true);
++  });
++});
++
++describe("alcance sin conexión", () => {
++  const fuentes = [];
++  const recorrer = (dir) => {
++    for (const nombre of readdirSync(dir)) {
++      const ruta = join(dir, nombre);
++      if (statSync(ruta).isDirectory()) recorrer(ruta);
++      else if (/\.(jsx?|html)$/.test(nombre) && !/\.test\.js$/.test(nombre)) fuentes.push(readFileSync(ruta, "utf8"));
++    }
++  };
++  recorrer(join(RAIZ, "src"));
++  fuentes.push(readFileSync(join(RAIZ, "index.html"), "utf8"));
++
++  it("no registra ningún service worker ni promete uso sin conexión (fuera del MVP)", () => {
++    expect(fuentes.some((f) => /serviceWorker\.register|navigator\.serviceWorker/.test(f))).toBe(false);
++    expect(existsSync(publico("sw.js"))).toBe(false);
++  });
++});
