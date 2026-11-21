@@ -9,6 +9,7 @@ admin.site.index_title = "Gestión del patrimonio cultural"
 
 urlpatterns = [
     path("admin/", admin.site.urls),
+    path("api/", include("apps.social.urls")),  # antes que el router: rutas más específicas (bienes/<id>/social/…)
     path("api/", include("apps.patrimonio.urls")),
 ]
 

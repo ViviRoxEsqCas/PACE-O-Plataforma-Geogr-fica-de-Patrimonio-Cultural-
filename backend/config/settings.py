@@ -41,8 +41,10 @@ INSTALLED_APPS = [
     # Terceros
     "rest_framework",
     "corsheaders",
-    # Propias
+    "rest_framework.authtoken",  # espacio social: token por visitante (la API pública sigue anónima)
+    # Propias (social va después de patrimonio: sus permisos se conceden tras los de los roles)
     "apps.patrimonio",
+    "apps.social",
 ]
 
 MIDDLEWARE = [
@@ -118,7 +120,14 @@ REST_FRAMEWORK = {
     "DEFAULT_PAGINATION_CLASS": "rest_framework.pagination.PageNumberPagination",
     "PAGE_SIZE": 20,
     # RF-17: límite de reportes por IP. Formato «N/hour»; se ajusta en .env (REPORTES_LIMITE).
-    "DEFAULT_THROTTLE_RATES": {"reportes": os.getenv("REPORTES_LIMITE", "5/hour")},
+    "DEFAULT_THROTTLE_RATES": {
+        "reportes": os.getenv("REPORTES_LIMITE", "5/hour"),
+        # Espacio social: registro e ingreso por IP; escrituras y solicitudes de amistad por usuario.
+        "social_acceso": os.getenv("SOCIAL_ACCESO_LIMITE", "20/hour"),
+        "social_registro": os.getenv("SOCIAL_REGISTRO_LIMITE", "5/hour"),
+        "social_escritura": os.getenv("SOCIAL_ESCRITURA_LIMITE", "120/hour"),
+        "social_amistad": os.getenv("SOCIAL_AMISTAD_LIMITE", "20/day"),
+    },
     # Si hay un proxy inverso delante (semana 4), indique cuántos: la IP real viene de X-Forwarded-For.
     # 0 = sin proxy: se usa REMOTE_ADDR. No convertir 0 en None: DRF tomaría entonces toda la cabecera
     # X-Forwarded-For (que el cliente controla) como identidad y el límite de reportes sería evadible.

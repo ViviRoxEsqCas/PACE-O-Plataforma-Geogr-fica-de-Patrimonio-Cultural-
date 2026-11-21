@@ -1,6 +1,8 @@
 // Cliente de la API pública (capa de presentación → lógica de aplicación, sección 8.1).
 // Todas las funciones aceptan un AbortSignal y lanzan ApiError con mensajes en español.
 
+import { EVENTO_SESION_EXPIRADA, guardarToken, leerToken } from "./sesion";
+
 const BASE = (import.meta.env?.VITE_API_URL ?? "").replace(/\/$/, "");
 export const TAMANO_MAXIMO = 100; // máximo que admite la API por página
 
@@ -23,18 +25,34 @@ function consulta(params) {
 
 async function pedir(ruta, params, signal, opciones = {}) {
   let respuesta;
+  const token = leerToken();
   try {
     respuesta = await fetch(`${BASE}${ruta}${consulta(params)}`, {
       signal,
       ...opciones,
-      headers: { Accept: "application/json", ...(opciones.headers ?? {}) },
+      headers: { Accept: "application/json", ...(token ? { Authorization: `Token ${token}` } : {}), ...(opciones.headers ?? {}) },
     });
   } catch (error) {
     if (error?.name === "AbortError") throw error;
     throw new ApiError("No se pudo conectar con el servidor. Revisa tu conexión e inténtalo de nuevo.");
   }
-  if (respuesta.status === 429) throw new ApiError("Enviaste varios reportes seguidos. Espera un rato antes de enviar otro.", 429);
-  if (respuesta.status === 400) {
+  if (respuesta.status === 429) {
+    throw new ApiError(
+      ruta.startsWith("/api/reportes/")
+        ? "Enviaste varios reportes seguidos. Espera un rato antes de enviar otro."
+        : "Hiciste demasiadas acciones seguidas. Espera un rato antes de intentarlo de nuevo.",
+      429,
+    );
+  }
+  if (respuesta.status === 401) {
+    if (token) {
+      guardarToken(null); // la cuenta se desactivó o la sesión se cerró en otro dispositivo
+      if (typeof window !== "undefined") window.dispatchEvent(new Event(EVENTO_SESION_EXPIRADA));
+    }
+    throw new ApiError(token ? "Tu sesión terminó. Vuelve a ingresar." : "Ingresa a tu cuenta para continuar.", 401);
+  }
+  if (respuesta.status === 403) throw new ApiError("No tienes permiso para hacer esto.", 403);
+  if (respuesta.status === 400 || respuesta.status === 409) {
     let detalle = {};
     try {
       detalle = await respuesta.json();
@@ -42,10 +60,11 @@ async function pedir(ruta, params, signal, opciones = {}) {
       /* sin detalle */
     }
     const primero = Object.values(detalle).flat()[0];
-    throw new ApiError(typeof primero === "string" ? primero : "Los datos enviados no son válidos.", 400);
+    throw new ApiError(typeof primero === "string" ? primero : "Los datos enviados no son válidos.", respuesta.status);
   }
   if (respuesta.status === 404) throw new ApiError("No se encontró lo que buscas.", 404);
   if (!respuesta.ok) throw new ApiError("El servidor no pudo responder. Inténtalo de nuevo en unos minutos.", respuesta.status);
+  if (respuesta.status === 204) return null;
   try {
     return await respuesta.json();
   } catch {
@@ -97,3 +116,36 @@ export const responderActividad = (actividadId, opcionId, signal) =>
 export const listarTiposReporte = (signal) => pedir("/api/tipos-reporte/", null, signal);
 /** Envía un reporte: { bien, tipo_reporte, descripcion } → { id, estado }. */
 export const enviarReporte = (datos, signal) => enviarJson("/api/reportes/", datos, signal);
+
+// --- Espacio social (cuentas, opiniones, visitas declaradas, amistades, ranking) --------------------
+const enviarJsonCon = (metodo, ruta, cuerpo, signal) =>
+  pedir(ruta, null, signal, {
+    method: metodo,
+    ...(cuerpo === undefined ? {} : { headers: { "Content-Type": "application/json" }, body: JSON.stringify(cuerpo) }),
+  });
+const e = encodeURIComponent;
+
+export const registrarCuenta = (datos, signal) => enviarJsonCon("POST", "/api/cuentas/registro/", datos, signal);
+export const iniciarSesion = (datos, signal) => enviarJsonCon("POST", "/api/cuentas/acceso/", datos, signal);
+export const cerrarSesionApi = (signal) => enviarJsonCon("POST", "/api/cuentas/salida/", undefined, signal);
+export const obtenerMiPerfil = (signal) => pedir("/api/cuentas/yo/", null, signal);
+/** `datos` puede ser un objeto (JSON) o un FormData (con la fotografía). */
+export const actualizarMiPerfil = (datos, signal) =>
+  datos instanceof FormData ? pedir("/api/cuentas/yo/", null, signal, { method: "PATCH", body: datos }) : enviarJsonCon("PATCH", "/api/cuentas/yo/", datos, signal);
+export const buscarPerfiles = (q, signal) => pedir("/api/perfiles/", { q }, signal);
+export const obtenerPerfil = (username, signal) => pedir(`/api/perfiles/${e(username)}/`, null, signal);
+
+export const resumenSocial = (bienId, signal) => pedir(`/api/bienes/${e(bienId)}/social/`, null, signal);
+export const listarComentarios = (bienId, page, signal) => pedir(`/api/bienes/${e(bienId)}/valoraciones/`, { page }, signal);
+export const guardarValoracion = (bienId, datos, signal) => enviarJsonCon("PUT", `/api/bienes/${e(bienId)}/mi-valoracion/`, datos, signal);
+export const retirarValoracion = (bienId, signal) => enviarJsonCon("DELETE", `/api/bienes/${e(bienId)}/mi-valoracion/`, undefined, signal);
+export const marcarVisitado = (bienId, signal) => enviarJsonCon("PUT", `/api/bienes/${e(bienId)}/mi-visita/`, undefined, signal);
+export const desmarcarVisitado = (bienId, signal) => enviarJsonCon("DELETE", `/api/bienes/${e(bienId)}/mi-visita/`, undefined, signal);
+export const reportarComentario = (valoracionId, motivo, signal) => enviarJsonCon("POST", `/api/valoraciones/${e(valoracionId)}/reportar/`, { motivo }, signal);
+
+export const listarAmistades = (signal) => pedir("/api/amistades/", null, signal);
+export const solicitarAmistad = (username, signal) => enviarJsonCon("POST", "/api/amistades/solicitar/", { username }, signal);
+export const responderAmistad = (id, accion, signal) => enviarJsonCon("POST", `/api/amistades/${e(id)}/${accion}/`, undefined, signal);
+export const quitarAmistad = (id, signal) => enviarJsonCon("DELETE", `/api/amistades/${e(id)}/`, undefined, signal);
+export const actividadDeAmistades = (signal) => pedir("/api/amistades/actividad/", null, signal);
+export const obtenerRanking = (signal) => pedir("/api/ranking/", null, signal);

@@ -9,7 +9,8 @@
     "preview": "vite preview",
     "test": "vitest run",
     "e2e": "node e2e/semana2.e2e.mjs",
-    "e2e:semana4": "node e2e/semana4.e2e.mjs"
+    "e2e:semana4": "node e2e/semana4.e2e.mjs",
+    "e2e:social": "node e2e/social.e2e.mjs"
   },
   "dependencies": {
     "leaflet": "1.9.4",

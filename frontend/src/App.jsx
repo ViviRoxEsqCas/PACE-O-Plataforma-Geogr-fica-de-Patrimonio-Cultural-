@@ -4,6 +4,11 @@ import Marco from "./components/Marco";
 import { CatalogoProvider } from "./hooks/Catalogo";
 import { ItinerarioProvider } from "./hooks/Itinerario";
 import { UbicacionProvider } from "./hooks/Ubicacion";
+import { SesionProvider } from "./hooks/Sesion";
+import Amistades from "./pages/Amistades";
+import Cuenta from "./pages/Cuenta";
+import Perfil from "./pages/Perfil";
+import Ranking from "./pages/Ranking";
 import Explorar from "./pages/Explorar";
 import Ficha from "./pages/Ficha";
 import Inicio from "./pages/Inicio";
@@ -30,6 +35,7 @@ export default function App() {
       <CatalogoProvider>
         <ItinerarioProvider>
           <AvisoProvider>
+            <SesionProvider>
             <a className="saltar" href="#contenido">
               Saltar al contenido
             </a>
@@ -38,8 +44,13 @@ export default function App() {
               <Route path="/explorar" element={<Explorar />} />
               <Route path="/bienes/:id" element={<Ficha />} />
               <Route path="/rutas" element={<Rutas />} />
+              <Route path="/cuenta" element={<Cuenta />} />
+              <Route path="/amistades" element={<Amistades />} />
+              <Route path="/ranking" element={<Ranking />} />
+              <Route path="/perfiles/:username" element={<Perfil />} />
               <Route path="*" element={<NoEncontrada />} />
             </Routes>
+          </SesionProvider>
           </AvisoProvider>
         </ItinerarioProvider>
       </CatalogoProvider>

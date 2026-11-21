@@ -1,0 +1,21 @@
+  ✔ S-01 Sin cuenta la ficha muestra la invitación y ningún formulario; el catálogo sigue siendo anónimo
+  ✔ S-02 Registro de visitante (sin correo) y acceso a «Mi cuenta»
+  ✔ S-03 Contraseña débil y usuario repetido se rechazan con mensaje claro
+  ✔ S-04 Marcar como visitado: declarada, no verificada, sin duplicar; abrir la ficha no cuenta
+  ✔ S-05 Valorar con estrellas y comentario; promedio, cantidad y comentario público
+  ✔ S-06 Editar la valoración no la duplica; retirar la quita del promedio
+  ✔ S-07 Comentario con enlace se rechaza en el servidor
+  ✔ S-08 Segunda cuenta: solicita amistad buscando a Ana; Ana la acepta
+  ✔ S-09 La actividad de Ana (visita, valoración y comentario) aparece a su amistad
+  ✔ S-10 Duplicados: no se puede solicitar de nuevo a una amistad (409 en español)
+  ✔ S-11 Beto reporta el comentario de Ana; no puede reportarlo dos veces
+  ✔ S-12 Perfil público de Ana: puntos, ranking y logros; ranking con fórmula visible
+  ✔ S-13 Privacidad: actividad «privada» desaparece de la vista de la amistad (en el servidor)
+  ✔ S-14 Privacidad: perfil «privado» responde como inexistente y sale del ranking y de la búsqueda
+  ✔ S-15 Una cuenta no puede modificar la valoración de otra (la API la crea como propia)
+  ✔ S-16 Cerrar sesión invalida el token en el servidor
+  ✔ S-17 Regresión: catálogo, mapa, actividades y reporte siguen funcionando con y sin cuenta
+  ✔ S-18 Responsive 360/768/1366: sin desbordes horizontales en las pantallas sociales
+  ✔ S-19 Sin errores de JavaScript durante todo el recorrido
+
+Espacio social: 19/19 comprobaciones superadas.

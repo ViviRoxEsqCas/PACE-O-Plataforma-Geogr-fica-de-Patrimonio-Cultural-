@@ -167,6 +167,9 @@ Abre **http://localhost:5173**
 
 <img src="assets/divider.svg" width="100%" alt="">
 
+## Espacio social (opcional, con cuenta)
+Cuentas de visitante, valoración 1–5 ★ y comentarios por bien, «marcar como visitado» (declarado, no verificado), amistades, perfiles con privacidad, logros y ranking. **Explorar, el mapa, las actividades y los reportes siguen sin requerir cuenta.** Diseño, modelo de datos, endpoints, reglas de puntos y pendientes: [`docs/espacio_social.md`](docs/espacio_social.md). Tras actualizar: `python manage.py migrate` (backend) y `npm install` (frontend).
+
 ## Hoja de ruta
 
 | Semana | Alcance | Estado |

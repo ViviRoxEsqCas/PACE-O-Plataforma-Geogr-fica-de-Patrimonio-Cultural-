@@ -4,6 +4,7 @@ import { Cargando, ErrorCarga } from "../components/Estados";
 import Foto from "../components/Foto";
 import { TarjetaBien } from "../components/ListaBienes";
 import Marco from "../components/Marco";
+import Opiniones from "../components/Opiniones";
 import MapaBienes from "../components/MapaBienes";
 import Practicar from "../components/Practicar";
 import Reportar from "../components/Reportar";
@@ -284,6 +285,10 @@ export default function Ficha() {
               <Reportar bienId={bien.id} />
             </div>
           </section>
+
+          <div className="social-wrap">
+            <Opiniones bienId={bien.id} />
+          </div>
 
           {relacionados.length > 0 && (
             <section className="detail-related-strip" aria-label="Otros patrimonios recomendados">

@@ -13,6 +13,8 @@ const ENLACES = [
   ["explorar", "EXPLORAR MAPA", "02. EXPLORACIÓN GEOGRÁFICA", "/explorar"],
   ["patrimonio", "PATRIMONIO", "03. FICHA PATRIMONIAL", null],
   ["rutas", "RUTAS", "04. RUTAS E ITINERARIOS", "/rutas"],
+  ["comunidad", "COMUNIDAD", "05. COMUNIDAD Y RANKING", "/ranking"],
+  ["cuenta", "CUENTA", "06. MI CUENTA", "/cuenta"],
 ];
 
 /**

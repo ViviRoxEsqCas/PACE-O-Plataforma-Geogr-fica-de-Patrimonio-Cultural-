@@ -1,0 +1,185 @@
+Found 141 test(s).
+Creating test database for alias 'default' ('test_paceno')...
+Operations to perform:
+  Synchronize unmigrated apps: corsheaders, messages, postgres, rest_framework, staticfiles
+  Apply all migrations: admin, auth, authtoken, contenttypes, patrimonio, sessions, social
+Synchronizing apps without migrations:
+  Creating tables...
+    Running deferred SQL...
+Running migrations:
+  Applying contenttypes.0001_initial... OK
+  Applying auth.0001_initial... OK
+  Applying admin.0001_initial... OK
+  Applying admin.0002_logentry_remove_auto_add... OK
+  Applying admin.0003_logentry_add_action_flag_choices... OK
+  Applying contenttypes.0002_remove_content_type_name... OK
+  Applying auth.0002_alter_permission_name_max_length... OK
+  Applying auth.0003_alter_user_email_max_length... OK
+  Applying auth.0004_alter_user_username_opts... OK
+  Applying auth.0005_alter_user_last_login_null... OK
+  Applying auth.0006_require_contenttypes_0002... OK
+  Applying auth.0007_alter_validators_add_error_messages... OK
+  Applying auth.0008_alter_user_username_max_length... OK
+  Applying auth.0009_alter_user_last_name_max_length... OK
+  Applying auth.0010_alter_group_name_max_length... OK
+  Applying auth.0011_update_proxy_permissions... OK
+  Applying auth.0012_alter_user_first_name_max_length... OK
+  Applying authtoken.0001_initial... OK
+  Applying authtoken.0002_auto_20160226_1747... OK
+  Applying authtoken.0003_tokenproxy... OK
+  Applying authtoken.0004_alter_tokenproxy_options... OK
+  Applying patrimonio.0001_modelo_inicial... OK
+  Applying patrimonio.0002_extension_unaccent... OK
+  Applying patrimonio.0003_catalogos_iniciales... OK
+  Applying sessions.0001_initial... OK
+  Applying social.0001_modelo_social... OK
+System check identified no issues (0 silenced).
+test_PT12_lista_actividades_sin_exponer_la_correcta_RN04 (apps.patrimonio.test_semana3.ActividadesTests.test_PT12_lista_actividades_sin_exponer_la_correcta_RN04) ... ok
+test_PT12_no_lista_actividades_de_fichas_no_publicadas_ni_mal_formadas (apps.patrimonio.test_semana3.ActividadesTests.test_PT12_no_lista_actividades_de_fichas_no_publicadas_ni_mal_formadas) ... ok
+test_PT13_actividad_inactiva_no_se_puede_responder (apps.patrimonio.test_semana3.ActividadesTests.test_PT13_actividad_inactiva_no_se_puede_responder) ... ok
+test_PT13_entradas_invalidas (apps.patrimonio.test_semana3.ActividadesTests.test_PT13_entradas_invalidas) ... ok
+test_PT13_respuesta_correcta_la_valida_el_servidor (apps.patrimonio.test_semana3.ActividadesTests.test_PT13_respuesta_correcta_la_valida_el_servidor) ... ok
+test_PT13_respuesta_incorrecta_no_revela_la_correcta_y_no_da_puntos (apps.patrimonio.test_semana3.ActividadesTests.test_PT13_respuesta_incorrecta_no_revela_la_correcta_y_no_da_puntos) ... ok
+test_PT14_se_puede_reintentar_y_siempre_hay_explicacion (apps.patrimonio.test_semana3.ActividadesTests.test_PT14_se_puede_reintentar_y_siempre_hay_explicacion) ... ok
+test_PT15_la_api_no_guarda_puntuacion_RN05 (apps.patrimonio.test_semana3.ActividadesTests.test_PT15_la_api_no_guarda_puntuacion_RN05) ... ok
+test_RN04_exactamente_una_correcta_la_base_rechaza_dos (apps.patrimonio.test_semana3.ActividadesTests.test_RN04_exactamente_una_correcta_la_base_rechaza_dos) ... ok
+test_RN04_panel_rechaza_actividad_activa_sin_correcta_o_con_pocas_opciones (apps.patrimonio.test_semana3.ActividadesTests.test_RN04_panel_rechaza_actividad_activa_sin_correcta_o_con_pocas_opciones) ... ok
+test_cargar_actividades_exige_las_fichas (apps.patrimonio.test_semana3.ComandosTests.test_cargar_actividades_exige_las_fichas) ... ok
+test_cargar_actividades_iniciales_crea_13_validas_e_idempotente (apps.patrimonio.test_semana3.ComandosTests.test_cargar_actividades_iniciales_crea_13_validas_e_idempotente) ... ok
+test_cargar_imagenes_valida_carga_y_no_duplica (apps.patrimonio.test_semana3.ComandosTests.test_cargar_imagenes_valida_carga_y_no_duplica) ... ok
+test_en_desarrollo_crea_cuentas_de_personal_sin_superusuario (apps.patrimonio.test_semana3.CuentasDemoTests.test_en_desarrollo_crea_cuentas_de_personal_sin_superusuario) ... ok
+test_se_niega_con_DEBUG_apagado_salvo_con_forzar (apps.patrimonio.test_semana3.CuentasDemoTests.test_se_niega_con_DEBUG_apagado_salvo_con_forzar) ... ok
+test_PT25_flujo_completo_visitante_responde_reporta_y_editor_revisa (apps.patrimonio.test_semana3.IntegracionTests.test_PT25_flujo_completo_visitante_responde_reporta_y_editor_revisa) ... ok
+test_PT16_catalogo_de_tipos_para_el_formulario (apps.patrimonio.test_semana3.ReportesTests.test_PT16_catalogo_de_tipos_para_el_formulario) ... ok
+test_PT16_reporte_valido_se_guarda_en_estado_nuevo (apps.patrimonio.test_semana3.ReportesTests.test_PT16_reporte_valido_se_guarda_en_estado_nuevo) ... ok
+test_PT17_el_limite_no_se_evade_cambiando_X_Forwarded_For (apps.patrimonio.test_semana3.ReportesTests.test_PT17_el_limite_no_se_evade_cambiando_X_Forwarded_For)
+Sin proxy (NUM_PROXIES=0) la identidad es REMOTE_ADDR: una cabecera inventada no reinicia el límite. ... ok
+test_PT17_el_visitante_no_puede_listar_ni_consultar_reportes (apps.patrimonio.test_semana3.ReportesTests.test_PT17_el_visitante_no_puede_listar_ni_consultar_reportes) ... ok
+test_PT17_limite_de_frecuencia_responde_429 (apps.patrimonio.test_semana3.ReportesTests.test_PT17_limite_de_frecuencia_responde_429) ... ok
+test_PT17_no_se_reporta_una_ficha_no_publicada (apps.patrimonio.test_semana3.ReportesTests.test_PT17_no_se_reporta_una_ficha_no_publicada) ... ok
+test_PT17_validaciones (apps.patrimonio.test_semana3.ReportesTests.test_PT17_validaciones) ... ok
+test_PT18_acciones_masivas_respetan_las_transiciones (apps.patrimonio.test_semana3.ReportesTests.test_PT18_acciones_masivas_respetan_las_transiciones) ... ok
+test_PT18_bandeja_del_panel_cambia_estado_con_formulario (apps.patrimonio.test_semana3.ReportesTests.test_PT18_bandeja_del_panel_cambia_estado_con_formulario) ... ok
+test_PT18_reporte_final_es_de_solo_lectura_en_el_panel (apps.patrimonio.test_semana3.ReportesTests.test_PT18_reporte_final_es_de_solo_lectura_en_el_panel) ... ok
+test_PT18_transiciones_permitidas_y_prohibidas_RN06 (apps.patrimonio.test_semana3.ReportesTests.test_PT18_transiciones_permitidas_y_prohibidas_RN06) ... ok
+test_PT19_cada_cambio_guarda_revisor_fecha_y_nota (apps.patrimonio.test_semana3.ReportesTests.test_PT19_cada_cambio_guarda_revisor_fecha_y_nota) ... ok
+test_PT20_acceso_a_reportes_restringido (apps.patrimonio.test_semana3.ReportesTests.test_PT20_acceso_a_reportes_restringido) ... ok
+test_roles_semana3 (apps.patrimonio.test_semana3.ReportesTests.test_roles_semana3) ... ok
+test_PT19_el_selector_no_ofrece_una_opcion_en_blanco_ni_transiciones_invalidas (apps.patrimonio.test_semana4.BandejaDeReportesSemana4.test_PT19_el_selector_no_ofrece_una_opcion_en_blanco_ni_transiciones_invalidas) ... ok
+test_PT19_una_transicion_invalida_enviada_directamente_se_rechaza (apps.patrimonio.test_semana4.BandejaDeReportesSemana4.test_PT19_una_transicion_invalida_enviada_directamente_se_rechaza) ... ok
+test_PT21_editor_no_puede_crear_cuentas_enviando_el_formulario_directamente (apps.patrimonio.test_semana4.CuentasYPermisosSemana4.test_PT21_editor_no_puede_crear_cuentas_enviando_el_formulario_directamente) ... ok
+test_PT21_editor_no_puede_modificar_cuentas_ni_grupos_por_POST (apps.patrimonio.test_semana4.CuentasYPermisosSemana4.test_PT21_editor_no_puede_modificar_cuentas_ni_grupos_por_POST) ... ok
+test_PT22_administrador_crea_una_cuenta_y_al_desactivarla_ya_no_ingresa (apps.patrimonio.test_semana4.CuentasYPermisosSemana4.test_PT22_administrador_crea_una_cuenta_y_al_desactivarla_ya_no_ingresa) ... ok
+test_PT22_el_administrador_no_puede_borrar_cuentas (apps.patrimonio.test_semana4.CuentasYPermisosSemana4.test_PT22_el_administrador_no_puede_borrar_cuentas)
+RF-22: las cuentas se desactivan, no se borran (el permiso delete_user no se concede). ... ok
+test_PT22_una_cuenta_desactivada_con_sesion_abierta_pierde_el_acceso_al_panel (apps.patrimonio.test_semana4.CuentasYPermisosSemana4.test_PT22_una_cuenta_desactivada_con_sesion_abierta_pierde_el_acceso_al_panel) ... ok
+test_nombres_exactos_del_manifiesto_de_imagenes (apps.patrimonio.tests.AjusteA13FichasTests.test_nombres_exactos_del_manifiesto_de_imagenes) ... ok
+test_renombra_conserva_id_retira_obsoletas_y_protege_reportes (apps.patrimonio.tests.AjusteA13FichasTests.test_renombra_conserva_id_retira_obsoletas_y_protege_reportes) ... ok
+test_busqueda_sin_tildes_ni_mayusculas_PT07 (apps.patrimonio.tests.ApiTests.test_busqueda_sin_tildes_ni_mayusculas_PT07) ... ok
+test_categorias_con_total_de_publicados (apps.patrimonio.tests.ApiTests.test_categorias_con_total_de_publicados) ... ok
+test_coordenadas_numericas_y_bien_sin_ubicacion_RF12 (apps.patrimonio.tests.ApiTests.test_coordenadas_numericas_y_bien_sin_ubicacion_RF12) ... ok
+test_detalle_de_bien_no_publicado_devuelve_404 (apps.patrimonio.tests.ApiTests.test_detalle_de_bien_no_publicado_devuelve_404) ... ok
+test_detalle_incluye_fuentes_e_imagenes_con_atribucion_RF10 (apps.patrimonio.tests.ApiTests.test_detalle_incluye_fuentes_e_imagenes_con_atribucion_RF10) ... ok
+test_filtro_por_categoria_y_limpiarlo_PT08 (apps.patrimonio.tests.ApiTests.test_filtro_por_categoria_y_limpiarlo_PT08) ... ok
+test_la_api_es_de_solo_lectura (apps.patrimonio.tests.ApiTests.test_la_api_es_de_solo_lectura) ... ok
+test_la_lista_no_hace_consultas_por_cada_bien (apps.patrimonio.tests.ApiTests.test_la_lista_no_hace_consultas_por_cada_bien) ... ok
+test_lista_esta_paginada_RF06 (apps.patrimonio.tests.ApiTests.test_lista_esta_paginada_RF06) ... ok
+test_lista_solo_devuelve_publicados_RN01_RF06 (apps.patrimonio.tests.ApiTests.test_lista_solo_devuelve_publicados_RN01_RF06) ... ok
+test_catalogos_y_zona_piloto_cargados_por_migracion (apps.patrimonio.tests.BaseDeDatosTests.test_catalogos_y_zona_piloto_cargados_por_migracion) ... ok
+test_categoria_nombre_unico_sin_distinguir_mayusculas_RF02 (apps.patrimonio.tests.BaseDeDatosTests.test_categoria_nombre_unico_sin_distinguir_mayusculas_RF02) ... ok
+test_check_de_estado_y_coordenadas_en_par (apps.patrimonio.tests.BaseDeDatosTests.test_check_de_estado_y_coordenadas_en_par) ... ok
+test_carga_13_fichas_publicadas_y_es_idempotente (apps.patrimonio.tests.CargaFichasTests.test_carga_13_fichas_publicadas_y_es_idempotente) ... ok
+test_la_api_publica_las_13_con_10_marcadores_y_3_sin_ubicacion (apps.patrimonio.tests.CargaFichasTests.test_la_api_publica_las_13_con_10_marcadores_y_3_sin_ubicacion) ... ok
+test_todas_las_fichas_cumplen_RN02_y_RN03 (apps.patrimonio.tests.CargaFichasTests.test_todas_las_fichas_cumplen_RN02_y_RN03) ... ok
+test_verificar_catalogo_informa_la_falta_de_imagenes_y_lo_exige_con_estricto (apps.patrimonio.tests.CargaFichasTests.test_verificar_catalogo_informa_la_falta_de_imagenes_y_lo_exige_con_estricto) ... ok
+test_PT01_registro_de_ficha_en_borrador_no_aparece_en_api (apps.patrimonio.tests.FichasTests.test_PT01_registro_de_ficha_en_borrador_no_aparece_en_api) ... ok
+test_PT02_modelo_rechaza_publicar_sin_fuente (apps.patrimonio.tests.FichasTests.test_PT02_modelo_rechaza_publicar_sin_fuente) ... ok
+test_PT02_no_se_publica_sin_fuente_en_el_panel (apps.patrimonio.tests.FichasTests.test_PT02_no_se_publica_sin_fuente_en_el_panel) ... ok
+test_PT02_publica_cuando_la_ficha_esta_completa_en_el_panel (apps.patrimonio.tests.FichasTests.test_PT02_publica_cuando_la_ficha_esta_completa_en_el_panel) ... ok
+test_PT03_bien_fuera_del_area_piloto_se_rechaza (apps.patrimonio.tests.FichasTests.test_PT03_bien_fuera_del_area_piloto_se_rechaza) ... ok
+test_PT03_bien_material_sin_coordenadas_no_se_publica (apps.patrimonio.tests.FichasTests.test_PT03_bien_material_sin_coordenadas_no_se_publica) ... ok
+test_PT03_el_panel_rechaza_coordenadas_fuera_del_area (apps.patrimonio.tests.FichasTests.test_PT03_el_panel_rechaza_coordenadas_fuera_del_area) ... ok
+test_PT03_manifestacion_inmaterial_sin_coordenadas_si_se_publica (apps.patrimonio.tests.FichasTests.test_PT03_manifestacion_inmaterial_sin_coordenadas_si_se_publica) ... ok
+test_PT04_ficha_completa_publicada_aparece_en_api (apps.patrimonio.tests.FichasTests.test_PT04_ficha_completa_publicada_aparece_en_api) ... ok
+test_PT05_el_panel_rechaza_imagen_sin_autor_ni_licencia (apps.patrimonio.tests.FichasTests.test_PT05_el_panel_rechaza_imagen_sin_autor_ni_licencia) ... ok
+test_PT05_imagen_sin_autor_se_rechaza (apps.patrimonio.tests.FichasTests.test_PT05_imagen_sin_autor_se_rechaza) ... ok
+test_PT05_imagen_sin_licencia_se_rechaza (apps.patrimonio.tests.FichasTests.test_PT05_imagen_sin_licencia_se_rechaza) ... ok
+test_acciones_masivas_publicar_valida_y_desactivar (apps.patrimonio.tests.FichasTests.test_acciones_masivas_publicar_valida_y_desactivar) ... ok
+test_editar_una_ficha_publicada_hasta_dejarla_incompleta_la_retira_RN01 (apps.patrimonio.tests.FichasTests.test_editar_una_ficha_publicada_hasta_dejarla_incompleta_la_retira_RN01) ... ok
+test_historial_de_estados_registra_usuario_y_fecha (apps.patrimonio.tests.FichasTests.test_historial_de_estados_registra_usuario_y_fecha) ... ok
+test_historial_guarda_el_estado_anterior_de_una_ficha_cargada_de_la_bd (apps.patrimonio.tests.FichasTests.test_historial_guarda_el_estado_anterior_de_una_ficha_cargada_de_la_bd) ... ok
+test_publicar_con_imagen_cuyo_autor_es_solo_espacios_se_rechaza_RN02 (apps.patrimonio.tests.FichasTests.test_publicar_con_imagen_cuyo_autor_es_solo_espacios_se_rechaza_RN02) ... ok
+test_PT21_editor_accede_a_fichas (apps.patrimonio.tests.RolesTests.test_PT21_editor_accede_a_fichas) ... ok
+test_PT21_editor_no_accede_a_usuarios_ni_grupos (apps.patrimonio.tests.RolesTests.test_PT21_editor_no_accede_a_usuarios_ni_grupos) ... ok
+test_PT21_sin_sesion_el_panel_redirige_al_inicio_de_sesion (apps.patrimonio.tests.RolesTests.test_PT21_sin_sesion_el_panel_redirige_al_inicio_de_sesion) ... ok
+test_PT23_historial_del_panel_solo_para_administrador (apps.patrimonio.tests.RolesTests.test_PT23_historial_del_panel_solo_para_administrador) ... ok
+test_administrador_gestiona_usuarios_pero_no_edita_permisos_de_grupos (apps.patrimonio.tests.RolesTests.test_administrador_gestiona_usuarios_pero_no_edita_permisos_de_grupos) ... ok
+test_administrador_no_ve_superusuarios_ni_puede_darse_permisos (apps.patrimonio.tests.RolesTests.test_administrador_no_ve_superusuarios_ni_puede_darse_permisos) ... ok
+test_cuenta_desactivada_no_ingresa_RF22 (apps.patrimonio.tests.RolesTests.test_cuenta_desactivada_no_ingresa_RF22) ... ok
+test_editor_no_puede_borrar_fichas (apps.patrimonio.tests.RolesTests.test_editor_no_puede_borrar_fichas) ... ok
+test_grupos_se_sincronizan_con_permisos_esperados (apps.patrimonio.tests.RolesTests.test_grupos_se_sincronizan_con_permisos_esperados) ... ok
+test_cancelar_una_solicitud_y_retirar_una_amistad (apps.social.tests.AmistadesTests.test_cancelar_una_solicitud_y_retirar_una_amistad) ... ok
+test_destinatario_inexistente_o_privado_responde_igual (apps.social.tests.AmistadesTests.test_destinatario_inexistente_o_privado_responde_igual) ... ok
+test_flujo_solicitud_aceptacion_y_lista (apps.social.tests.AmistadesTests.test_flujo_solicitud_aceptacion_y_lista) ... ok
+test_la_base_de_datos_impide_amistades_inversas_duplicadas_y_autoamistad (apps.social.tests.AmistadesTests.test_la_base_de_datos_impide_amistades_inversas_duplicadas_y_autoamistad) ... ok
+test_limite_de_solicitudes_pendientes_y_de_frecuencia (apps.social.tests.AmistadesTests.test_limite_de_solicitudes_pendientes_y_de_frecuencia) ... ok
+test_no_a_si_mismo_ni_duplicadas_ni_cruzadas (apps.social.tests.AmistadesTests.test_no_a_si_mismo_ni_duplicadas_ni_cruzadas) ... ok
+test_no_se_puede_solicitar_a_quien_ya_es_amistad (apps.social.tests.AmistadesTests.test_no_se_puede_solicitar_a_quien_ya_es_amistad) ... ok
+test_rechazada_quien_fue_rechazado_no_insiste_pero_quien_rechazo_si_puede (apps.social.tests.AmistadesTests.test_rechazada_quien_fue_rechazado_no_insiste_pero_quien_rechazo_si_puede) ... ok
+test_solo_el_destinatario_responde (apps.social.tests.AmistadesTests.test_solo_el_destinatario_responde) ... ok
+test_usuario_desactivado_desaparece_de_las_listas (apps.social.tests.AmistadesTests.test_usuario_desactivado_desaparece_de_las_listas) ... ok
+test_acceso_correcto_incorrecto_y_cuenta_desactivada (apps.social.tests.CuentasTests.test_acceso_correcto_incorrecto_y_cuenta_desactivada) ... ok
+test_cuenta_desactivada_con_token_pierde_acceso (apps.social.tests.CuentasTests.test_cuenta_desactivada_con_token_pierde_acceso) ... ok
+test_foto_de_perfil_valida_formato_y_tamano (apps.social.tests.CuentasTests.test_foto_de_perfil_valida_formato_y_tamano) ... ok
+test_los_roles_editor_y_administrador_no_cambian (apps.social.tests.CuentasTests.test_los_roles_editor_y_administrador_no_cambian) ... ok
+test_no_se_puede_editar_otro_perfil_ni_cambiar_el_propietario (apps.social.tests.CuentasTests.test_no_se_puede_editar_otro_perfil_ni_cambiar_el_propietario) ... ok
+test_perfil_propio_se_edita_y_no_expone_correo (apps.social.tests.CuentasTests.test_perfil_propio_se_edita_y_no_expone_correo) ... ok
+test_perfil_valida_privacidad_longitudes_y_enlaces (apps.social.tests.CuentasTests.test_perfil_valida_privacidad_longitudes_y_enlaces) ... ok
+test_registro_crea_visitante_sin_privilegios_ni_correo (apps.social.tests.CuentasTests.test_registro_crea_visitante_sin_privilegios_ni_correo) ... ok
+test_registro_rechaza_duplicados_sin_distinguir_mayusculas_y_claves_debiles (apps.social.tests.CuentasTests.test_registro_rechaza_duplicados_sin_distinguir_mayusculas_y_claves_debiles) ... ok
+test_registro_tiene_limite_de_frecuencia (apps.social.tests.CuentasTests.test_registro_tiene_limite_de_frecuencia) ... ok
+test_salida_invalida_el_token (apps.social.tests.CuentasTests.test_salida_invalida_el_token) ... ok
+test_un_visitante_no_entra_al_panel_editorial (apps.social.tests.CuentasTests.test_un_visitante_no_entra_al_panel_editorial) ... ok
+test_actividad_de_amistades_solo_de_amistades_y_respeta_su_privacidad (apps.social.tests.PrivacidadTests.test_actividad_de_amistades_solo_de_amistades_y_respeta_su_privacidad) ... ok
+test_actividad_del_perfil_segun_su_privacidad (apps.social.tests.PrivacidadTests.test_actividad_del_perfil_segun_su_privacidad) ... ok
+test_actividad_no_incluye_bienes_no_publicados (apps.social.tests.PrivacidadTests.test_actividad_no_incluye_bienes_no_publicados) ... ok
+test_autor_de_comentario_se_oculta_si_su_perfil_no_es_publico (apps.social.tests.PrivacidadTests.test_autor_de_comentario_se_oculta_si_su_perfil_no_es_publico) ... ok
+test_busqueda_de_perfiles_solo_publicos_y_minimo_de_caracteres (apps.social.tests.PrivacidadTests.test_busqueda_de_perfiles_solo_publicos_y_minimo_de_caracteres) ... ok
+test_el_personal_editorial_no_tiene_perfil_publico_ni_recibe_solicitudes (apps.social.tests.PrivacidadTests.test_el_personal_editorial_no_tiene_perfil_publico_ni_recibe_solicitudes) ... ok
+test_perfil_privado_no_existe_para_los_demas_pero_si_para_su_dueno (apps.social.tests.PrivacidadTests.test_perfil_privado_no_existe_para_los_demas_pero_si_para_su_dueno) ... ok
+test_perfil_publico_muestra_logros_ranking_y_nada_privado (apps.social.tests.PrivacidadTests.test_perfil_publico_muestra_logros_ranking_y_nada_privado) ... ok
+test_perfil_solo_amistades (apps.social.tests.PrivacidadTests.test_perfil_solo_amistades) ... ok
+test_acciones_triviales_o_repetidas_no_suman (apps.social.tests.RankingYLogrosTests.test_acciones_triviales_o_repetidas_no_suman) ... ok
+test_bienes_no_publicados_no_puntuan (apps.social.tests.RankingYLogrosTests.test_bienes_no_publicados_no_puntuan) ... ok
+test_formula_visita_3_valoracion_2_comentario_2 (apps.social.tests.RankingYLogrosTests.test_formula_visita_3_valoracion_2_comentario_2) ... ok
+test_logro_de_amistad (apps.social.tests.RankingYLogrosTests.test_logro_de_amistad) ... ok
+test_logros_solo_con_acciones_reales (apps.social.tests.RankingYLogrosTests.test_logros_solo_con_acciones_reales) ... ok
+test_orden_desempate_y_exclusion_de_perfiles_no_publicos (apps.social.tests.RankingYLogrosTests.test_orden_desempate_y_exclusion_de_perfiles_no_publicos) ... ok
+test_ranking_es_reproducible (apps.social.tests.RankingYLogrosTests.test_ranking_es_reproducible) ... ok
+test_comentario_es_opcional_y_solo_texto_plano_se_guarda_tal_cual (apps.social.tests.ValoracionesTests.test_comentario_es_opcional_y_solo_texto_plano_se_guarda_tal_cual) ... ok
+test_comentario_oculto_desaparece_del_publico_pero_las_estrellas_cuentan (apps.social.tests.ValoracionesTests.test_comentario_oculto_desaparece_del_publico_pero_las_estrellas_cuentan) ... ok
+test_comentarios_publicos_orden_reciente_primero_y_solo_con_texto (apps.social.tests.ValoracionesTests.test_comentarios_publicos_orden_reciente_primero_y_solo_con_texto) ... ok
+test_comentarios_se_paginan (apps.social.tests.ValoracionesTests.test_comentarios_se_paginan) ... ok
+test_el_editor_oculta_y_restituye_desde_el_panel_pero_no_borra (apps.social.tests.ValoracionesTests.test_el_editor_oculta_y_restituye_desde_el_panel_pero_no_borra) ... ok
+test_escrituras_tienen_limite_de_frecuencia (apps.social.tests.ValoracionesTests.test_escrituras_tienen_limite_de_frecuencia) ... ok
+test_la_api_de_bienes_no_cambia_ni_mezcla_opiniones_con_la_ficha (apps.social.tests.ValoracionesTests.test_la_api_de_bienes_no_cambia_ni_mezcla_opiniones_con_la_ficha) ... ok
+test_la_base_de_datos_impide_duplicados_aunque_falle_la_validacion (apps.social.tests.ValoracionesTests.test_la_base_de_datos_impide_duplicados_aunque_falle_la_validacion) ... ok
+test_las_actividades_siguen_sin_exponer_la_opcion_correcta (apps.social.tests.ValoracionesTests.test_las_actividades_siguen_sin_exponer_la_opcion_correcta) ... ok
+test_nadie_modifica_la_valoracion_de_otra_persona (apps.social.tests.ValoracionesTests.test_nadie_modifica_la_valoracion_de_otra_persona) ... ok
+test_reportar_comentario_una_sola_vez_y_nunca_el_propio (apps.social.tests.ValoracionesTests.test_reportar_comentario_una_sola_vez_y_nunca_el_propio) ... ok
+test_resumen_promedio_cantidad_y_estado_propio (apps.social.tests.ValoracionesTests.test_resumen_promedio_cantidad_y_estado_propio) ... ok
+test_retirar_la_valoracion (apps.social.tests.ValoracionesTests.test_retirar_la_valoracion) ... ok
+test_solo_se_valora_un_bien_publicado (apps.social.tests.ValoracionesTests.test_solo_se_valora_un_bien_publicado) ... ok
+test_todo_lo_que_escribe_exige_sesion (apps.social.tests.ValoracionesTests.test_todo_lo_que_escribe_exige_sesion) ... ok
+test_un_visitante_no_puede_moderar_desde_el_panel (apps.social.tests.ValoracionesTests.test_un_visitante_no_puede_moderar_desde_el_panel) ... ok
+test_una_valoracion_por_usuario_y_bien_se_edita_sin_duplicar (apps.social.tests.ValoracionesTests.test_una_valoracion_por_usuario_y_bien_se_edita_sin_duplicar) ... ok
+test_validaciones_de_estrellas_y_comentario_en_el_servidor (apps.social.tests.ValoracionesTests.test_validaciones_de_estrellas_y_comentario_en_el_servidor) ... ok
+test_abrir_la_ficha_no_registra_una_visita (apps.social.tests.VisitasTests.test_abrir_la_ficha_no_registra_una_visita) ... ok
+test_la_visita_no_guarda_ubicacion (apps.social.tests.VisitasTests.test_la_visita_no_guarda_ubicacion) ... ok
+test_marcar_como_visitado_es_idempotente_y_declarado_no_verificado (apps.social.tests.VisitasTests.test_marcar_como_visitado_es_idempotente_y_declarado_no_verificado) ... ok
+
+----------------------------------------------------------------------
+Ran 141 tests in 31.375s
+
+OK
+Destroying test database for alias 'default' ('test_paceno')...

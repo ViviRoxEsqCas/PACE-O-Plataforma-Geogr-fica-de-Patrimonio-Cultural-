@@ -1,0 +1,12 @@
+
+ RUN  v5.0.5 /home/claude/viviroxesqcas/pace-o-plataforma-geogr-fica-de-patrimonio-cultural-/frontend
+
+
+ Test Files  7 passed (7)
+      Tests  45 passed (45)
+   Start at  09:18:03
+   Duration  834ms (tests 37%, import 35%, worker 15%, transform 13%, environment 1%)
+
+    Isolate  7 workers spawned · ~88ms startup each (spawn + environment, per file)
+             at least ~527ms faster with isolate: false — reuses workers across files instead of one per file
+
