@@ -6,6 +6,16 @@ import { EVENTO_SESION_EXPIRADA, guardarToken, leerToken } from "./sesion";
 const BASE = (import.meta.env?.VITE_API_URL ?? "").replace(/\/$/, "");
 export const TAMANO_MAXIMO = 100; // máximo que admite la API por página
 
+/**
+ * Dirección con la que el navegador pide una imagen de la API. La API entrega rutas «/media/…» sin host (así el
+ * teléfono no recibe una dirección que apunta a sí mismo). Sin VITE_API_URL se piden al origen de la página: el proxy
+ * de Vite (o el servidor web) las lleva al backend. Con VITE_API_URL se anteponen a la dirección de la API.
+ * Los activos propios del frontend («/assets/…») y las URL completas (almacenamiento externo) no se modifican.
+ */
+export function urlRecurso(url, base = BASE) {
+  return typeof url === "string" && url.startsWith("/media/") ? `${base}${url}` : url;
+}
+
 export class ApiError extends Error {
   constructor(mensaje, estado = 0) {
     super(mensaje);

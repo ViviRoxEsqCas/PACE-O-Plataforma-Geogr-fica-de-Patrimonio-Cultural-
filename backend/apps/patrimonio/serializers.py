@@ -49,9 +49,11 @@ class ImagenSerializer(serializers.ModelSerializer):
         fields = ("id", "url", "texto_alternativo", "autor", "licencia", "licencia_url", "es_portada")
 
     def get_url(self, obj):
-        request = self.context.get("request")
-        url = obj.archivo.url
-        return request.build_absolute_uri(url) if request else url
+        # Ruta «/media/…» sin esquema ni host. Una URL absoluta se construiría con el Host que ve Django, y detrás del
+        # proxy de desarrollo (que lo reescribe a 127.0.0.1:8000) un teléfono recibiría una dirección que apunta a sí
+        # mismo. Con la ruta, el navegador la resuelve contra la dirección con la que abrió la página (IP de la LAN,
+        # dominio, HTTP o HTTPS), sin contenido mixto. Un almacenamiento externo (S3, etc.) ya devuelve su URL completa.
+        return obj.archivo.url
 
 
 class BienListaSerializer(serializers.ModelSerializer):

@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { ApiError, listarBienes, listarMarcadores, obtenerBien } from "./api";
+import { ApiError, listarBienes, listarMarcadores, obtenerBien, urlRecurso } from "./api";
 
 const respuesta = (cuerpo, estado = 200) => ({ ok: estado < 400, status: estado, json: async () => cuerpo });
 afterEach(() => vi.unstubAllGlobals());
@@ -23,6 +23,22 @@ describe("listarBienes", () => {
   it("mapea errores HTTP", async () => {
     vi.stubGlobal("fetch", vi.fn().mockResolvedValue(respuesta({}, 500)));
     await expect(listarBienes()).rejects.toBeInstanceOf(ApiError);
+  });
+});
+
+describe("urlRecurso", () => {
+  it("deja la ruta «/media/…» tal cual (el navegador la pide al origen de la página, p. ej. la IP de la LAN)", () => {
+    expect(urlRecurso("/media/bienes/a.png", "")).toBe("/media/bienes/a.png");
+  });
+  it("con VITE_API_URL antepone la dirección de la API", () => {
+    expect(urlRecurso("/media/bienes/a.png", "http://192.168.1.20:8000")).toBe("http://192.168.1.20:8000/media/bienes/a.png");
+  });
+  it("no toca los activos del frontend ni las URL completas ni los valores vacíos", () => {
+    const base = "http://192.168.1.20:8000";
+    expect(urlRecurso("/assets/images/illustrations/hero-main.png", base)).toBe("/assets/images/illustrations/hero-main.png");
+    expect(urlRecurso("https://cdn.ejemplo.org/media/a.png", base)).toBe("https://cdn.ejemplo.org/media/a.png");
+    expect(urlRecurso(undefined, base)).toBeUndefined();
+    expect(urlRecurso(null, base)).toBeNull();
   });
 });
 

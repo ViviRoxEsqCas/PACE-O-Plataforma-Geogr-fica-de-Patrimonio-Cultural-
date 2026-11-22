@@ -1,0 +1,214 @@
+diff --git a/backend/apps/patrimonio/serializers.py b/backend/apps/patrimonio/serializers.py
+index 41d6883..37504a4 100644
+--- a/backend/apps/patrimonio/serializers.py
++++ b/backend/apps/patrimonio/serializers.py
+@@ -49,9 +49,11 @@ class ImagenSerializer(serializers.ModelSerializer):
+         fields = ("id", "url", "texto_alternativo", "autor", "licencia", "licencia_url", "es_portada")
+ 
+     def get_url(self, obj):
+-        request = self.context.get("request")
+-        url = obj.archivo.url
+-        return request.build_absolute_uri(url) if request else url
++        # Ruta «/media/…» sin esquema ni host. Una URL absoluta se construiría con el Host que ve Django, y detrás del
++        # proxy de desarrollo (que lo reescribe a 127.0.0.1:8000) un teléfono recibiría una dirección que apunta a sí
++        # mismo. Con la ruta, el navegador la resuelve contra la dirección con la que abrió la página (IP de la LAN,
++        # dominio, HTTP o HTTPS), sin contenido mixto. Un almacenamiento externo (S3, etc.) ya devuelve su URL completa.
++        return obj.archivo.url
+ 
+ 
+ class BienListaSerializer(serializers.ModelSerializer):
+diff --git a/backend/apps/social/serializers.py b/backend/apps/social/serializers.py
+index 76ba092..0750c29 100644
+--- a/backend/apps/social/serializers.py
++++ b/backend/apps/social/serializers.py
+@@ -23,8 +23,8 @@ def perfil_de(usuario) -> PerfilVisitante:
+ def url_foto(perfil, request):
+     if not perfil or not perfil.foto:
+         return None
+-    url = perfil.foto.url
+-    return request.build_absolute_uri(url) if request else url
++    # Misma razón que en ImagenSerializer.get_url (patrimonio): ruta «/media/…», no URL absoluta dependiente del Host.
++    return perfil.foto.url
+ 
+ 
+ def identidad(usuario, request):
+diff --git a/docs/correcciones_descarga_y_movil.md b/docs/correcciones_descarga_y_movil.md
+new file mode 100644
+index 0000000..874b266
+--- /dev/null
++++ b/docs/correcciones_descarga_y_movil.md
+@@ -0,0 +1,83 @@
++# Correcciones: icono de descarga e imágenes en el móvil
++
++Registro de lo que se investigó y se ejecutó el 22-11-2026. Solo se corrigió lo que tenía una causa comprobada.
++
++## Entorno de las pruebas
++| Dato | Valor |
++|---|---|
++| Sistema | Linux (contenedor), PostgreSQL 16 real, 13 fichas con sus 13 imágenes cargadas |
++| Navegador | Google Chrome 153 con Playwright (CDP). Móvil **emulado** (Pixel 7), no un teléfono físico |
++| Red | IP de la LAN del contenedor (`192.0.2.2`) por HTTP, Vite con `--host` |
++| Simulación del teléfono | Toda petición a `127.0.0.1`/`localhost` distinta del origen de la página se rechaza: en un teléfono esa dirección es el propio teléfono, no el ordenador |
++
++## 1. Icono de descarga no visible
++
++**Hallazgo: no hay ningún componente, icono ni botón de descarga que corregir.**
++- Búsqueda en todo el código (`descarg`, `download`, `install`, `beforeinstallprompt`, `a[download]`, blobs), en los estilos y en **todo el historial de git**: las únicas coincidencias son comentarios y documentación («evita descargar el Chromium de Playwright»). Nunca existió un botón de descarga.
++- En el DOM real de `/` y `/explorar` no hay ningún elemento con clases, `aria-label` ni `download` relacionados con descargar o instalar.
++- Lo único parecido es la **instalación de la PWA** (semana 4: `manifest.webmanifest` + iconos), que el navegador ofrece con su propio icono en la barra de direcciones. `docs/semana4.md` ya indica que no hay botón propio («menú del navegador → Instalar Paceño»).
++
++**Instalabilidad medida con Chrome 153 (`Page.getInstallabilityErrors`, perfil normal, no incógnito):**
++
++| Dirección | Resultado |
++|---|---|
++| `http://localhost:5173` (desarrollo) | **Instalable, 0 errores** |
++| `http://localhost:4173` (build de producción) | **Instalable, 0 errores** |
++| `http://<IP de la LAN>:5173` | `not-from-secure-origin`: Chrome **no** ofrece instalar por HTTP en una IP |
++
++**Conclusión.** Manifiesto, iconos (192, 512, maskable) y enlaces están bien; no hay causa en el código. Si el icono no aparece:
++1. **Desde el móvil por la IP en HTTP:** es una regla del navegador (la instalación exige contexto seguro) y no se arregla en el código. Opciones, sin aplicar aquí: HTTPS con un certificado de confianza local (p. ej. `mkcert`) o abrir `localhost` en el teléfono mediante `adb reverse tcp:5173 tcp:5173`.
++2. **En el ordenador:** si la app ya está instalada, Chrome muestra «abrir en la aplicación» en lugar del icono de instalar.
++
++No se añadió ningún botón: sería un componente nuevo y el encargo prohibía alterar el diseño.
++
++## 2. Imágenes que no cargan en el móvil
++
++**Causa raíz (reproducida).** En desarrollo, `vite.config.js` usa la forma abreviada del proxy (`"/api": destino`), que equivale a `changeOrigin: true` y **reescribe la cabecera `Host`**. El navegador envió `Host: 192.0.2.2:5199` y el backend recibió `127.0.0.1:8099` (comprobado con un servidor de eco). `ImagenSerializer.get_url` construía la imagen con `request.build_absolute_uri()`, así que la API devolvía:
++
++```
++http://127.0.0.1:8000/media/bienes/ficha_basilica_san_francisco_1.png
++```
++
++El teléfono pedía esa dirección a sí mismo y fallaba. En el ordenador funcionaba porque ahí `127.0.0.1:8000` sí es el backend. Mismo defecto en la foto de perfil (`url_foto`, app social).
++
++**Solución.** La API entrega la ruta `/media/...` sin esquema ni host y el navegador la resuelve contra la dirección con la que abrió la página (IP de la LAN, dominio, HTTP o HTTPS). Se eligió frente a otras opciones porque:
++- no exige añadir la IP del equipo a `DJANGO_ALLOWED_HOSTS` (la IP cambia con el DHCP y un comodín sería inseguro) ni activar `USE_X_FORWARDED_HOST`;
++- evita el contenido mixto: detrás de un proxy HTTPS sin `X-Forwarded-Proto`, Django emitiría `http://` dentro de una página `https://`;
++- un almacenamiento externo (S3, etc.) sigue devolviendo su URL completa sin cambios.
++
++Con `VITE_API_URL` (API en otro origen) el helper `urlRecurso` antepone esa dirección a las rutas `/media/…`; los activos propios (`/assets/…`) no se tocan.
++
++### Archivos modificados
++| Archivo | Cambio |
++|---|---|
++| `backend/apps/patrimonio/serializers.py` | `ImagenSerializer.get_url` devuelve `obj.archivo.url` (ruta) en vez de una URL absoluta. |
++| `backend/apps/social/serializers.py` | `url_foto` igual, por la misma causa. |
++| `frontend/src/lib/api.js` | Nueva función `urlRecurso(url, base)`. |
++| `frontend/src/components/Foto.jsx` | `<img src={urlRecurso(src)}>`. |
++| `frontend/src/components/Persona.jsx` | Avatar con `urlRecurso(persona.foto)`. |
++| `frontend/src/lib/api.test.js` | 3 pruebas de `urlRecurso`. |
++
++Sin cambios en estilos, diseño, componentes visibles, imágenes, dependencias, `settings.py`, `vite.config.js` ni `.env`.
++
++### Qué se descartó como causa
++- **CORS:** las `<img>` sin `crossorigin` no usan CORS, y por el proxy todo es del mismo origen.
++- **`ALLOWED_HOSTS`:** Django sigue viendo `127.0.0.1:8000` a través del proxy; no hace falta tocarlo.
++- **Contenido mixto / restricciones de HTTP:** página HTTP pidiendo imágenes HTTP; no aplica. Las rutas relativas tampoco lo introducen si luego se sirve por HTTPS.
++- **`MEDIA_URL`/`MEDIA_ROOT`/`static()`:** correctos; `/media/...` responde 200 por la IP de la LAN a través del proxy.
++
++> Para abrir la PWA desde el teléfono, Vite debe escucharse en la red: `npm run dev -- --host`. No se cambió la configuración para no exponer el servidor de desarrollo por defecto.
++
++## Pruebas
++
++| Prueba | Antes | Después |
++|---|---|---|
++| Móvil emulado por IP de la LAN: imágenes `/media/` cargadas en `/`, `/explorar` y 2 fichas | **0 de 24** (todas pedidas a `127.0.0.1:8000`) | **24 de 24** (pedidas a la IP de la LAN) |
++| Escritorio por `localhost` (regresión) | 24 de 24 | 24 de 24 |
++| Móvil con `VITE_API_URL=http://<IP>:8001` (API en otro origen) | — | 24 de 24 (pedidas a `<IP>:8001`) |
++| Frontend `npm test` | 45/45 | **48/48** |
++| `vite build` | — | Correcto |
++| Backend `manage.py test` | — | **141/141** |
++| E2E semana 2 (`PT-06…PT-24`) | — | **14/14** |
++
++**Limitaciones:** móvil emulado en Chrome, no un teléfono físico ni otros navegadores (Safari/iOS, Firefox). Los mosaicos del mapa de OpenStreetMap quedan bloqueados por la red del entorno de pruebas, y no forman parte de este problema.
+diff --git a/frontend/src/components/Foto.jsx b/frontend/src/components/Foto.jsx
+index f2b0534..b446026 100644
+--- a/frontend/src/components/Foto.jsx
++++ b/frontend/src/components/Foto.jsx
+@@ -1,4 +1,5 @@
+ import { useEffect, useState } from "react";
++import { urlRecurso } from "../lib/api";
+ 
+ /**
+  * Espacio de imagen del diseño («asset-slot»): muestra la fotografía o ilustración y, si no hay
+@@ -13,7 +14,7 @@ export default function Foto({ src, alt = "", as: Etiqueta = "figure", cover = t
+   return (
+     <Etiqueta className={clases} {...resto}>
+       {children}
+-      {src && <img src={src} alt={fallo ? "" : alt} className={`asset-image${cover ? " asset-image--cover" : ""}`} loading="lazy" onError={() => setFallo(true)} onLoad={() => setFallo(false)} />}
++      {src && <img src={urlRecurso(src)} alt={fallo ? "" : alt} className={`asset-image${cover ? " asset-image--cover" : ""}`} loading="lazy" onError={() => setFallo(true)} onLoad={() => setFallo(false)} />}
+       <span className="asset-slot__placeholder" aria-hidden="true">
+         {etiqueta && <span className="asset-slot__tag">{etiqueta}</span>}
+         {pista && <span className="asset-slot__hint">{pista}</span>}
+diff --git a/frontend/src/components/Persona.jsx b/frontend/src/components/Persona.jsx
+index 29d1b75..424f73c 100644
+--- a/frontend/src/components/Persona.jsx
++++ b/frontend/src/components/Persona.jsx
+@@ -1,10 +1,11 @@
+ import { Link } from "react-router-dom";
++import { urlRecurso } from "../lib/api";
+ 
+ /** Avatar (foto o inicial) + nombre visible. Solo usa los datos públicos de una persona. */
+ export function Avatar({ persona, tamano = 36 }) {
+   const inicial = (persona?.nombre_visible || persona?.username || "?").trim().charAt(0).toUpperCase();
+   return persona?.foto ? (
+-    <img className="avatar" src={persona.foto} alt="" width={tamano} height={tamano} style={{ width: tamano, height: tamano }} />
++    <img className="avatar" src={urlRecurso(persona.foto)} alt="" width={tamano} height={tamano} style={{ width: tamano, height: tamano }} />
+   ) : (
+     <span className="avatar avatar--inicial" aria-hidden="true" style={{ width: tamano, height: tamano, fontSize: tamano * 0.42 }}>
+       {inicial}
+diff --git a/frontend/src/lib/api.js b/frontend/src/lib/api.js
+index 86665f3..8bc5fde 100644
+--- a/frontend/src/lib/api.js
++++ b/frontend/src/lib/api.js
+@@ -6,6 +6,16 @@ import { EVENTO_SESION_EXPIRADA, guardarToken, leerToken } from "./sesion";
+ const BASE = (import.meta.env?.VITE_API_URL ?? "").replace(/\/$/, "");
+ export const TAMANO_MAXIMO = 100; // máximo que admite la API por página
+ 
++/**
++ * Dirección con la que el navegador pide una imagen de la API. La API entrega rutas «/media/…» sin host (así el
++ * teléfono no recibe una dirección que apunta a sí mismo). Sin VITE_API_URL se piden al origen de la página: el proxy
++ * de Vite (o el servidor web) las lleva al backend. Con VITE_API_URL se anteponen a la dirección de la API.
++ * Los activos propios del frontend («/assets/…») y las URL completas (almacenamiento externo) no se modifican.
++ */
++export function urlRecurso(url, base = BASE) {
++  return typeof url === "string" && url.startsWith("/media/") ? `${base}${url}` : url;
++}
++
+ export class ApiError extends Error {
+   constructor(mensaje, estado = 0) {
+     super(mensaje);
+diff --git a/frontend/src/lib/api.test.js b/frontend/src/lib/api.test.js
+index 52919fb..27665ac 100644
+--- a/frontend/src/lib/api.test.js
++++ b/frontend/src/lib/api.test.js
+@@ -1,5 +1,5 @@
+ import { afterEach, describe, expect, it, vi } from "vitest";
+-import { ApiError, listarBienes, listarMarcadores, obtenerBien } from "./api";
++import { ApiError, listarBienes, listarMarcadores, obtenerBien, urlRecurso } from "./api";
+ 
+ const respuesta = (cuerpo, estado = 200) => ({ ok: estado < 400, status: estado, json: async () => cuerpo });
+ afterEach(() => vi.unstubAllGlobals());
+@@ -26,6 +26,22 @@ describe("listarBienes", () => {
+   });
+ });
+ 
++describe("urlRecurso", () => {
++  it("deja la ruta «/media/…» tal cual (el navegador la pide al origen de la página, p. ej. la IP de la LAN)", () => {
++    expect(urlRecurso("/media/bienes/a.png", "")).toBe("/media/bienes/a.png");
++  });
++  it("con VITE_API_URL antepone la dirección de la API", () => {
++    expect(urlRecurso("/media/bienes/a.png", "http://192.168.1.20:8000")).toBe("http://192.168.1.20:8000/media/bienes/a.png");
++  });
++  it("no toca los activos del frontend ni las URL completas ni los valores vacíos", () => {
++    const base = "http://192.168.1.20:8000";
++    expect(urlRecurso("/assets/images/illustrations/hero-main.png", base)).toBe("/assets/images/illustrations/hero-main.png");
++    expect(urlRecurso("https://cdn.ejemplo.org/media/a.png", base)).toBe("https://cdn.ejemplo.org/media/a.png");
++    expect(urlRecurso(undefined, base)).toBeUndefined();
++    expect(urlRecurso(null, base)).toBeNull();
++  });
++});
++
+ describe("obtenerBien", () => {
+   it("convierte 404 en ApiError con estado 404", async () => {
+     vi.stubGlobal("fetch", vi.fn().mockResolvedValue(respuesta({}, 404)));

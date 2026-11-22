@@ -23,8 +23,8 @@ def perfil_de(usuario) -> PerfilVisitante:
 def url_foto(perfil, request):
     if not perfil or not perfil.foto:
         return None
-    url = perfil.foto.url
-    return request.build_absolute_uri(url) if request else url
+    # Misma razón que en ImagenSerializer.get_url (patrimonio): ruta «/media/…», no URL absoluta dependiente del Host.
+    return perfil.foto.url
 
 
 def identidad(usuario, request):

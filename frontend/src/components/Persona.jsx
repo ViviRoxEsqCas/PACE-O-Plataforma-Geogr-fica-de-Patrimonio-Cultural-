@@ -1,10 +1,11 @@
 import { Link } from "react-router-dom";
+import { urlRecurso } from "../lib/api";
 
 /** Avatar (foto o inicial) + nombre visible. Solo usa los datos públicos de una persona. */
 export function Avatar({ persona, tamano = 36 }) {
   const inicial = (persona?.nombre_visible || persona?.username || "?").trim().charAt(0).toUpperCase();
   return persona?.foto ? (
-    <img className="avatar" src={persona.foto} alt="" width={tamano} height={tamano} style={{ width: tamano, height: tamano }} />
+    <img className="avatar" src={urlRecurso(persona.foto)} alt="" width={tamano} height={tamano} style={{ width: tamano, height: tamano }} />
   ) : (
     <span className="avatar avatar--inicial" aria-hidden="true" style={{ width: tamano, height: tamano, fontSize: tamano * 0.42 }}>
       {inicial}
