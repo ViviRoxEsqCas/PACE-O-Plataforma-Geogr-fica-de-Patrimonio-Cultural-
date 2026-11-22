@@ -40,7 +40,7 @@ export default function Cabecera({ activa, insignia, notaMenu, bordeada = false,
       <header className={`top-bar${bordeada ? " top-bar--bordered" : ""}${animada ? " reveal-up" : ""}`}>
         <div className="top-bar__left">
           <Link to="/" className="brand-logo" aria-label="Inicio PACEÑO">
-            行旅 <span className="brand-logo__sub">PACEÑO</span>
+            ˚. ᵎᵎ <span className="brand-logo__sub">PACEÑO</span>
           </Link>
           <div className="copyright-badge">
             <span className="copyright-pill" aria-hidden="true" />

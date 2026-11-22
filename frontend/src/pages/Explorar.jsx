@@ -52,9 +52,9 @@ function Narrativa() {
   const inmaterial = bienes.find((b) => b.tipo === "inmaterial");
   const foto = (i) => fotos[i]?.portada;
   const capsulas = [
-    ["一 · 石の記憶", "Barroco Mestizo y Piedra Labrada", "Las portadas del siglo XVIII integran símbolos andinos, flora de los yungas y traza europea en una estética única del altiplano."],
-    ["二 · 高地の都市", "Topografía de Laderas y Miradores", "Desde los 3.560 hasta los 3.740 metros de altitud, cada barrio construye balcones naturales hacia la cordillera Real."],
-    ["三 · 生きた文化", "Saberes Vivos y Memoria Colectiva", "Más allá de los monumentos, el patrimonio paceño late en sus festividades, textilería tradicional y espacios de encuentro ciudadano."],
+    ["一 · Uka qalat amtasiña", "Barroco Mestizo y Piedra Labrada", "Las portadas del siglo XVIII integran símbolos andinos, flora de los yungas y traza europea en una estética única del altiplano."],
+    ["二 · Pata marka", "Topografía de Laderas y Miradores", "Desde los 3.560 hasta los 3.740 metros de altitud, cada barrio construye balcones naturales hacia la cordillera Real."],
+    ["三 · Jakiri sarnaqawi", "Saberes Vivos y Memoria Colectiva", "Más allá de los monumentos, el patrimonio paceño late en sus festividades, textilería tradicional y espacios de encuentro ciudadano."],
   ];
 
   return (

@@ -14,7 +14,7 @@ export default function Pie({ cta }) {
       <div className="footer-grid">
         <div className="footer-brand">
           <Link to="/" className="footer-brand__mark">
-            行旅 <span>PACEÑO</span>
+            ˚. ᵎᵎ <span>PACEÑO</span>
           </Link>
           <p className="footer-brand__desc">
             Plataforma interactiva de documentación, cartografía y puesta en valor del patrimonio cultural, arquitectónico e inmaterial de La Paz, Bolivia.

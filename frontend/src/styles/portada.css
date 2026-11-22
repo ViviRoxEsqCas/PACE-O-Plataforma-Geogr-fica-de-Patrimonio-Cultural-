@@ -1,0 +1,658 @@
+/* ==========================================================================
+   PORTADA (5 PANTALLAS) — Portfolio de Plura, integrado sin alterar el diseño.
+   Es la hoja del ZIP de referencia tal cual: mismos valores, mismos selectores y mismo orden.
+   Únicos cambios, todos técnicos y sin efecto visual:
+   - Las clases llevan el prefijo «pl-» y las variables viven en .pl-root, para no chocar con
+     las de la aplicación (--bg-canvas, .vertical-title, etc.).
+   - Las reglas globales de html/body solo rigen mientras la portada está montada (html.pl-activa).
+   - Al final, «ADICIONES FUNCIONALES»: lo imprescindible para que las fotos reales y los enlaces
+     funcionen dentro de la estructura original.
+   ========================================================================== */
+
+/* ==========================================================================
+   SISTEMA DE DISEÑO — FIDELIDAD ESTRICTA A REFERENCIAS VISUALES Y TIPOGRÁFICAS
+   ========================================================================== */
+
+.pl-root {
+  /* Paleta Cromática Extraída de Referencias 1 y 2 */
+  --bg-canvas: #C6C3C0;           /* Fondo gris cálido neutro de la lámina base */
+  --bg-slide-paper: #EFECE6;      /* Blanco hueso / papel editorial de las tarjetas */
+  --bg-slide-cream: #EAE6DF;      /* Crema cálido secundario (Ref. 2 inferior) */
+  --bg-dark-slate: #2D3335;       /* Gris pizarra oscuro (Tarjeta 2 y zona superior Ref. 2) */
+  --ink-primary: #232724;         /* Negro carbón / verde musgo muy oscuro para titulares */
+  --ink-secondary: #5D615E;       /* Gris editorial para cuerpo de texto */
+  --ink-muted: #8E8D8A;           /* Gris suave para metadatos y subtítulos */
+  --ink-light: #F3F1ED;           /* Blanco marfil para texto sobre fondo oscuro */
+  --rule-hairline: rgba(35, 39, 36, 0.22); /* Líneas estructurales finas 1px */
+  --slot-border: rgba(35, 39, 36, 0.18);
+  --slot-bg: rgba(198, 195, 192, 0.28);
+
+  /* Jerarquía Tipográfica (Ref. 2: Script + Serif + Sans técnico) */
+  --font-script: 'Alex Brush', cursive;
+  --font-serif: 'Cormorant Garamond', Georgia, serif;
+  --font-sans: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+  --font-cn: 'Noto Sans SC', sans-serif;
+}
+
+/* ==========================================================================
+   RESET Y CONFIGURACIÓN DE VIEWPORT 100% ANCHO Y ALTO SIN SCROLL NATIVO
+   ========================================================================== */
+
+.pl-root *,
+.pl-root *::before,
+.pl-root *::after {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+html.pl-activa,
+html.pl-activa body {
+  width: 100%;
+  height: 100%;
+  overflow: hidden; /* Oculta el scroll genérico del navegador */
+  background-color: #C6C3C0;
+  color: #232724;
+  font-family: 'Cormorant Garamond', Georgia, serif;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+/* Contenedor Principal que ocupa 100% del viewport */
+.pl-viewport-scroller {
+  width: 100vw;
+  height: 100vh;
+  overflow-y: scroll;
+  overflow-x: hidden;
+  scroll-snap-type: y mandatory;
+  scroll-behavior: smooth;
+  scrollbar-width: none; /* Firefox */
+  -ms-overflow-style: none; /* IE/Edge */
+}
+
+.pl-viewport-scroller::-webkit-scrollbar {
+  display: none; /* Chrome/Safari/Opera */
+}
+
+/* ==========================================================================
+   SCROLLBAR PERSONALIZADO (COHERENTE CON LA ESTÉTICA EDITORIAL MINIMALISTA)
+   ========================================================================== */
+
+.pl-custom-scrollbar-track {
+  position: fixed;
+  top: 3.5vh;
+  right: 1.4vw;
+  width: 3px;
+  height: 93vh;
+  background-color: rgba(35, 39, 36, 0.14);
+  z-index: 1000;
+  cursor: pointer;
+}
+
+.pl-custom-scrollbar-thumb {
+  position: absolute;
+  top: 0;
+  left: -1px;
+  width: 5px;
+  height: 20%; /* 1/5 pantallas */
+  background-color: var(--ink-primary);
+  transition: background-color 0.2s ease;
+  cursor: grab;
+}
+
+.pl-custom-scrollbar-thumb:active {
+  cursor: grabbing;
+  background-color: #000000;
+}
+
+/* ==========================================================================
+   ESTRUCTURA DE CADA PANTALLA (5 TARJETAS A PANTALLA COMPLETA)
+   ========================================================================== */
+
+.pl-screen-slide {
+  width: 100vw;
+  height: 100vh;
+  padding: 3.5vh 3.5vw;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  scroll-snap-align: start;
+  scroll-snap-stop: always;
+  background-color: var(--bg-canvas);
+}
+
+.pl-slide-frame {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+  box-shadow: 0 18px 42px rgba(28, 28, 28, 0.14);
+}
+
+.pl-bg-paper {
+  background-color: var(--bg-slide-paper);
+}
+
+.pl-bg-dark-slate {
+  background-color: var(--bg-dark-slate);
+}
+
+/* ==========================================================================
+   TIPOGRAFÍA Y JERARQUÍA VISUAL (REFERENCIA 2)
+   ========================================================================== */
+
+.pl-meta-label {
+  font-family: var(--font-sans);
+  font-size: clamp(0.62rem, 0.72vw, 0.78rem);
+  font-weight: 400;
+  letter-spacing: 0.04em;
+  color: var(--ink-secondary);
+}
+
+.pl-text-light .pl-meta-label {
+  color: rgba(243, 241, 237, 0.82);
+}
+
+.pl-cn-subtitle {
+  font-family: var(--font-cn);
+  font-size: clamp(0.75rem, 0.9vw, 0.95rem);
+  font-weight: 300;
+  letter-spacing: 0.18em;
+  color: var(--ink-muted);
+  margin-bottom: 0.35rem;
+}
+
+.pl-text-light-muted {
+  color: rgba(243, 241, 237, 0.68);
+}
+
+/* Combinación Script + Serif de la Referencia 2 */
+.pl-display-serif {
+  font-family: var(--font-serif);
+  font-weight: 400;
+  font-size: clamp(2.6rem, 4.2vw, 4.4rem);
+  line-height: 0.95;
+  letter-spacing: 0.04em;
+  color: var(--ink-primary);
+  text-transform: uppercase;
+}
+
+.pl-display-serif.pl-medium-title {
+  font-size: clamp(2.1rem, 3.2vw, 3.3rem);
+}
+
+.pl-text-light .pl-display-serif {
+  color: var(--ink-light);
+}
+
+.pl-script-accent {
+  font-family: var(--font-script);
+  font-weight: 400;
+  font-size: 1.32em;
+  text-transform: none;
+  line-height: 0.7;
+  margin-right: -0.04em;
+  display: inline-block;
+}
+
+/* ==========================================================================
+   ESPACIOS PREPARADOS PARA FOTOGRAFÍAS (5 SLOTS INDEPENDIENTES)
+   ========================================================================== */
+
+.pl-photo-slot {
+  position: relative;
+  background-color: var(--slot-bg);
+  background-size: cover;
+  background-position: center;
+  background-repeat: no-repeat;
+  overflow: hidden;
+}
+
+.pl-photo-slot-frame {
+  width: 100%;
+  height: 100%;
+  border: 1px dashed var(--slot-border);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 1rem;
+  transition: opacity 0.25s ease;
+}
+
+.pl-photo-slot-frame.pl-slot-dark {
+  border-color: rgba(243, 241, 237, 0.2);
+  background-color: rgba(25, 29, 31, 0.45);
+}
+
+.pl-slot-spec {
+  font-family: var(--font-sans);
+  font-size: 0.68rem;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--ink-muted);
+  text-align: center;
+  user-select: none;
+}
+
+.pl-slot-dark .pl-slot-spec {
+  color: rgba(243, 241, 237, 0.55);
+}
+
+/* Cuando se inserta una imagen real (<img> o background-image), ocultar guía */
+.pl-photo-slot.pl-has-image .pl-photo-slot-frame,
+.pl-photo-slot img ~ .pl-photo-slot-frame {
+  opacity: 0;
+  pointer-events: none;
+}
+
+.pl-photo-slot img {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+
+/* ==========================================================================
+   PANTALLA 1 — LAYOUT ESPECÍFICO
+   ========================================================================== */
+
+.pl-slide-topbar {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  padding: 3.4vh 3.8vw;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  z-index: 10;
+  pointer-events: none;
+}
+
+.pl-s1-grid {
+  display: grid;
+  grid-template-columns: 38.2% 61.8%;
+  width: 100%;
+  height: 100%;
+}
+
+.pl-s1-left-col {
+  padding: 15vh 3.2vw 6vh 3.8vw;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: 3.2vh;
+  background-color: var(--bg-slide-paper);
+}
+
+.pl-editorial-copy {
+  display: flex;
+  flex-direction: column;
+  gap: 2.2vh;
+  max-width: 34ch;
+}
+
+.pl-editorial-copy p {
+  font-family: var(--font-serif);
+  font-style: italic;
+  font-size: clamp(0.84rem, 0.96vw, 1.02rem);
+  line-height: 1.55;
+  color: var(--ink-secondary);
+}
+
+.pl-s1-photo-slot {
+  width: 100%;
+  height: 100%;
+}
+
+/* ==========================================================================
+   PANTALLA 2 — LAYOUT ESPECÍFICO (FULL-BLEED OSCURO)
+   ========================================================================== */
+
+.pl-s2-photo-slot {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  z-index: 1;
+}
+
+.pl-s2-overlay {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  z-index: 2;
+  pointer-events: none;
+}
+
+.pl-s2-title-group {
+  position: absolute;
+  top: 15.5vh;
+  left: 3.8vw;
+}
+
+/* ==========================================================================
+   PANTALLA 3 — LAYOUT ESPECÍFICO (PART TWO / PACKAGING RETÍCULA ORTOGONAL)
+   ========================================================================== */
+
+.pl-s3-architectural-grid {
+  display: grid;
+  grid-template-columns: 4.2% 62.8% 33%;
+  width: 100%;
+  height: 100%;
+}
+
+.pl-s3-left-rail {
+  border-right: 1px solid var(--rule-hairline);
+  height: 100%;
+}
+
+.pl-s3-center-column {
+  display: grid;
+  grid-template-rows: 24% 52% 24%;
+  border-right: 1px solid var(--rule-hairline);
+  height: 100%;
+}
+
+.pl-s3-top-row {
+  border-bottom: 1px solid var(--rule-hairline);
+  display: flex;
+  align-items: center;
+  padding: 0 2.4vw;
+}
+
+.pl-s3-part-title {
+  font-family: var(--font-serif);
+  font-weight: 400;
+  font-size: clamp(2.8rem, 4.8vw, 5.1rem);
+  letter-spacing: 0.03em;
+  line-height: 1;
+  color: var(--ink-primary);
+}
+
+.pl-s3-middle-row {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0 4vw;
+}
+
+.pl-s3-chapter-block {
+  width: 100%;
+  max-width: 44ch;
+}
+
+.pl-cn-subtitle-inline {
+  font-family: var(--font-cn);
+  font-size: clamp(0.76rem, 0.88vw, 0.92rem);
+  font-weight: 400;
+  letter-spacing: 0.14em;
+  color: var(--ink-muted);
+  margin-bottom: 0.9vh;
+}
+
+.pl-s3-divider-line {
+  width: 100%;
+  height: 1px;
+  background-color: var(--rule-hairline);
+  margin-bottom: 1.4vh;
+}
+
+.pl-editorial-copy-compact {
+  font-family: var(--font-serif);
+  font-style: italic;
+  font-size: clamp(0.78rem, 0.88vw, 0.94rem);
+  line-height: 1.5;
+  color: var(--ink-secondary);
+}
+
+.pl-s3-bottom-row {
+  border-top: 1px solid var(--rule-hairline);
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  padding: 0 2.4vw;
+}
+
+.pl-s3-packaging-title {
+  font-family: var(--font-serif);
+  font-weight: 400;
+  font-size: clamp(2.6rem, 4.4vw, 4.7rem);
+  letter-spacing: 0.03em;
+  line-height: 1;
+  color: var(--ink-primary);
+}
+
+.pl-s3-right-column {
+  display: grid;
+  grid-template-rows: 76% 24%;
+  height: 100%;
+}
+
+.pl-s3-photo-slot {
+  width: 100%;
+  height: 100%;
+  border-bottom: 1px solid var(--rule-hairline);
+}
+
+.pl-s3-right-bottom-spacer {
+  width: 100%;
+  height: 100%;
+}
+
+/* ==========================================================================
+   PANTALLA 4 — LAYOUT ESPECÍFICO (CONCEPTS CON TEXTO VERTICAL)
+   ========================================================================== */
+
+.pl-s4-grid {
+  display: grid;
+  grid-template-columns: 68% 32%;
+  width: 100%;
+  height: 100%;
+}
+
+.pl-s4-photo-slot {
+  width: 100%;
+  height: 100%;
+}
+
+.pl-s4-right-sidebar {
+  padding: 3.4vh 2.8vw 4.5vh 2.8vw;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  background-color: var(--bg-slide-paper);
+}
+
+.pl-s4-top-credit {
+  text-align: right;
+}
+
+.pl-s4-vertical-header {
+  display: flex;
+  flex-direction: row-reverse;
+  align-items: flex-start;
+  justify-content: center;
+  gap: 0.6vw;
+  margin: auto 0;
+}
+
+.pl-vertical-title {
+  writing-mode: vertical-rl;
+  text-orientation: mixed;
+  font-size: clamp(2.2rem, 3.4vw, 3.6rem);
+  letter-spacing: 0.06em;
+  line-height: 1;
+}
+
+.pl-cn-vertical {
+  writing-mode: vertical-rl;
+  text-orientation: upright;
+  font-family: var(--font-cn);
+  font-size: clamp(0.72rem, 0.85vw, 0.9rem);
+  letter-spacing: 0.22em;
+  color: var(--ink-muted);
+  padding-top: 0.4rem;
+}
+
+.pl-s4-bottom-copy {
+  max-width: 30ch;
+  margin: 0 auto;
+}
+
+.pl-editorial-copy-micro {
+  font-family: var(--font-serif);
+  font-style: italic;
+  font-size: clamp(0.76rem, 0.86vw, 0.92rem);
+  line-height: 1.5;
+  color: var(--ink-secondary);
+}
+
+/* ==========================================================================
+   PANTALLA 5 — LAYOUT ESPECÍFICO (RESEARCH + MATRIZ 3x3)
+   ========================================================================== */
+
+.pl-s5-grid {
+  display: grid;
+  grid-template-columns: 44% 56%;
+  width: 100%;
+  height: 100%;
+  padding: 13vh 3.8vw 5.5vh 3.8vw;
+  gap: 3vw;
+}
+
+.pl-s5-left-col {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: 3vh;
+}
+
+.pl-s5-copy-block {
+  display: flex;
+  flex-direction: column;
+  gap: 1.8vh;
+  max-width: 34ch;
+}
+
+.pl-s5-photo-slot {
+  width: 100%;
+  height: 100%;
+  background-color: transparent;
+}
+
+/* Guías visuales de la retícula 3x3 de referencia */
+.pl-s5-matrix-guide {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  grid-template-rows: repeat(3, 1fr);
+  gap: 1.2vh 0.8vw;
+  z-index: 1;
+}
+
+.pl-matrix-cell {
+  background-color: var(--slot-bg);
+  border: 1px dashed var(--slot-border);
+}
+
+.pl-s5-overlay-label {
+  position: relative;
+  z-index: 2;
+  background-color: rgba(239, 236, 230, 0.55);
+}
+
+.pl-s5-photo-slot.pl-has-image .pl-s5-matrix-guide {
+  display: none;
+}
+
+/* ==========================================================================
+   ADAPTACIÓN RESPONSIVE MANTENIENDO PROPORCIONES
+   ========================================================================== */
+
+@media (max-width: 900px) {
+  .pl-screen-slide {
+    padding: 2vh 2.5vw;
+  }
+
+  .pl-s1-grid,
+  .pl-s4-grid,
+  .pl-s5-grid {
+    grid-template-columns: 1fr;
+    grid-template-rows: auto 1fr;
+  }
+
+  .pl-s1-left-col {
+    padding: 9vh 5vw 2.5vh 5vw;
+    gap: 1.5vh;
+  }
+
+  .pl-s3-architectural-grid {
+    grid-template-columns: 1fr;
+    grid-template-rows: auto 1fr;
+  }
+
+  .pl-s3-left-rail {
+    display: none;
+  }
+
+  .pl-s3-right-column {
+    grid-template-rows: 1fr;
+  }
+
+  .pl-s3-right-bottom-spacer {
+    display: none;
+  }
+
+  .pl-s4-right-sidebar {
+    padding: 2.5vh 5vw;
+    flex-direction: row;
+    align-items: center;
+    gap: 3vw;
+  }
+
+  .pl-vertical-title,
+  .pl-cn-vertical {
+    writing-mode: horizontal-tb;
+  }
+
+  .pl-s5-grid {
+    padding: 9vh 5vw 3vh 5vw;
+    gap: 2vh;
+  }
+}
+
+/* ==========================================================================
+   ADICIONES FUNCIONALES (sin efecto visual sobre el diseño original)
+   ========================================================================== */
+
+/* Las meta-etiquetas de la barra superior pasan a ser enlaces con el mismo estilo de etiqueta (.pl-meta-label).
+   La barra original ignora el puntero; solo los enlaces lo recuperan. */
+.pl-meta-link {
+  text-decoration: none;
+  pointer-events: auto;
+}
+
+.pl-meta-link:focus-visible {
+  outline: 1px solid currentColor;
+  outline-offset: 3px;
+}
+
+/* Matriz 3x3 de la pantalla 5: cada celda aloja su fotografía y, con fotos, oculta la guía punteada. */
+.pl-matrix-cell {
+  position: relative;
+  overflow: hidden;
+}
+
+/* (La regla original .has-image oculta toda la guía; aquí las fotos viven dentro de ella, por eso se usa .pl-has-photos.) */
+.pl-s5-photo-slot.pl-has-photos .pl-photo-slot-frame {
+  opacity: 0;
+  pointer-events: none;
+}
+
+.pl-s5-photo-slot.pl-has-photos .pl-matrix-cell {
+  border-color: transparent;
+}
