@@ -1,40 +1,43 @@
 /* ==========================================================================
    COMPONENTE GLOBAL: BOTONES Y CONTROLES — PACEÑO
+   Los botones del diseño de referencia son píldoras de 12 px:
+     · principal  → fondo salvia suave (bg-sage-100/80) con icono salvia
+     · secundario → blanco con borde line-default y texto secundario
+     · papel      → canvas-paper con borde (variante «explorar galería»)
    ========================================================================== */
-.cta-pill-btn {
+.cta-pill-btn,
+.btn-outline-pill,
+.btn-paper-pill {
   display: inline-flex;
   align-items: center;
   justify-content: center;
   gap: 8px;
-  background-color: var(--amber-cta);
-  color: var(--ink-black);
+  min-height: 36px;
+  padding: 10px 20px;
+  border-radius: 9999px;
+  font-size: 0.75rem;
+  line-height: 1rem;
   text-decoration: none;
-  border: 1.5px solid transparent;
-  font-size: 0.74rem;
-  font-weight: 700;
-  letter-spacing: 0.02em;
-  padding: 11px 22px;
-  border-radius: 999px;
   cursor: pointer;
-  box-shadow: 0 8px 20px rgba(247, 168, 35, 0.25);
-  transition: transform 0.3s var(--ease-editorial), background-color 0.25s ease,
-    box-shadow 0.3s ease;
+  transition: background-color 0.25s ease, color 0.25s ease, border-color 0.25s ease, transform 0.3s var(--ease-editorial);
+}
+
+.cta-pill-btn {
+  background-color: rgba(226, 234, 228, 0.8);
+  color: var(--ink-primary);
+  border: 1px solid transparent;
+  font-weight: 500;
 }
 
 .cta-pill-btn:hover {
-  background-color: var(--amber-cta-hover);
-  transform: translateY(-2px);
-  box-shadow: 0 12px 26px rgba(247, 168, 35, 0.4);
-}
-
-.cta-pill-btn:active {
-  transform: translateY(0);
+  background-color: rgba(196, 211, 200, 0.7);
 }
 
 .cta-plus {
   font-size: 0.95rem;
-  font-weight: 700;
+  font-weight: 500;
   line-height: 1;
+  color: var(--sage-400);
   transition: transform 0.3s var(--ease-editorial);
 }
 
@@ -43,84 +46,76 @@
 }
 
 .btn-outline-pill {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  gap: 8px;
-  background-color: var(--bg-canvas);
-  color: var(--ink-black);
-  border: 1.5px solid var(--ink-black);
-  text-decoration: none;
-  font-size: 0.72rem;
-  font-weight: 700;
-  letter-spacing: 0.04em;
-  text-transform: uppercase;
-  padding: 10px 20px;
-  border-radius: 999px;
-  cursor: pointer;
-  transition: background-color 0.25s ease, color 0.25s ease, transform 0.3s var(--ease-editorial);
+  background-color: var(--canvas-pure);
+  color: var(--ink-secondary);
+  border: 1px solid var(--line-default);
+  font-weight: 400;
 }
 
 .btn-outline-pill:hover {
-  background-color: var(--ink-black);
-  color: var(--bg-canvas);
-  transform: translateY(-2px);
+  background-color: var(--canvas-paper);
+  color: var(--ink-primary);
 }
 
-.btn-crimson-pill {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  gap: 8px;
-  background-color: var(--crimson-japan);
-  color: var(--bg-canvas);
-  border: 1.5px solid var(--crimson-japan);
-  text-decoration: none;
-  font-size: 0.72rem;
-  font-weight: 700;
-  letter-spacing: 0.04em;
-  text-transform: uppercase;
-  padding: 10px 20px;
-  border-radius: 999px;
-  cursor: pointer;
-  transition: background-color 0.25s ease, transform 0.3s var(--ease-editorial),
-    box-shadow 0.3s ease;
+.btn-paper-pill {
+  background-color: var(--canvas-paper);
+  color: var(--ink-primary);
+  border: 1px solid var(--line-default);
+  font-weight: 500;
 }
 
-.btn-crimson-pill:hover {
-  background-color: var(--crimson-hover);
-  transform: translateY(-2px);
-  box-shadow: 0 10px 22px rgba(200, 22, 29, 0.28);
+.btn-paper-pill:hover {
+  background-color: var(--sage-50);
+}
+
+.btn-paper-pill svg,
+.cta-pill-btn svg {
+  width: 14px;
+  height: 14px;
+  color: var(--sage-400);
 }
 
 .arrow-btn {
-  width: 30px;
-  height: 30px;
+  width: 32px;
+  height: 32px;
   border-radius: 50%;
-  border: 1px solid var(--border-subtle);
-  background-color: var(--bg-canvas);
-  color: var(--ink-dark);
+  border: 1px solid var(--line-default);
+  background-color: var(--canvas-pure);
+  color: var(--ink-secondary);
   display: inline-flex;
   align-items: center;
   justify-content: center;
+  text-decoration: none;
+  font-size: 1.1rem;
+  line-height: 1;
   cursor: pointer;
-  transition: transform 0.3s var(--ease-editorial), background-color 0.25s ease,
-    border-color 0.25s ease, color 0.25s ease, box-shadow 0.3s ease;
+  transition: background-color 0.25s ease, color 0.25s ease, border-color 0.25s ease;
 }
 
 .arrow-btn:hover {
-  transform: translateY(-2px);
-  border-color: var(--ink-black);
-  box-shadow: 0 6px 14px rgba(0, 0, 0, 0.1);
+  background-color: var(--canvas-paper);
+  color: var(--ink-primary);
 }
 
-.arrow-btn.is-crimson {
-  background-color: var(--crimson-japan);
-  border-color: var(--crimson-japan);
-  color: var(--bg-canvas);
+.arrow-btn.is-sage {
+  background-color: var(--sage-100);
+  border-color: var(--sage-200);
+  color: var(--ink-primary);
 }
 
-.arrow-btn.is-crimson:hover {
-  background-color: var(--crimson-hover);
-  box-shadow: 0 6px 16px rgba(200, 22, 29, 0.32);
+.arrow-btn.is-sage:hover {
+  background-color: var(--sage-200);
+}
+
+@media (pointer: coarse) {
+  .cta-pill-btn,
+  .btn-outline-pill,
+  .btn-paper-pill {
+    min-height: 44px;
+  }
+
+  .arrow-btn {
+    width: 44px;
+    height: 44px;
+  }
 }

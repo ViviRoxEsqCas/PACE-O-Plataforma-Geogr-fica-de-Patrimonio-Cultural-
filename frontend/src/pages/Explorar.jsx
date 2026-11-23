@@ -1,3 +1,4 @@
+import { Compass, MapPin } from "lucide-react";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import { Cargando, ErrorCarga, Vacio } from "../components/Estados";
@@ -7,6 +8,7 @@ import ListaBienes from "../components/ListaBienes";
 import Marco from "../components/Marco";
 import MapaBienes from "../components/MapaBienes";
 import Paginacion from "../components/Paginacion";
+import { AbejaVoxel } from "../components/Stickers";
 import { useCatalogo } from "../hooks/Catalogo";
 import { useUbicacion } from "../hooks/Ubicacion";
 import { useDatos, useRetardo } from "../hooks/useDatos";
@@ -59,20 +61,17 @@ function Narrativa() {
 
   return (
     <section className="editorial-showcase" aria-label="Narrativa urbana y cultural de La Paz">
-      <div className="showcase-geo-sun" aria-hidden="true" />
-      <div className="showcase-geo-ring" aria-hidden="true" />
-
       <div className="showcase-intro-grid">
         <div>
-          <span className="explore-kicker">CUADERNO URBANO · MIRADA PACEÑA</span>
+          <span className="script-note">cuaderno urbano · mirada paceña</span>
           <h2 className="showcase-headline">Arquitectura en pendiente, memoria viva y capas culturales de la hoyada.</h2>
           <p className="showcase-lead">
             PACEÑO articula la cartografía digital con el registro visual de plazas, templos barrocos, calles coloniales y miradores de altura. Cada punto del mapa conecta la historia urbana de La Paz con recorridos accesibles para residentes y visitantes.
           </p>
-          <div style={{ display: "flex", flexWrap: "wrap", gap: 12 }}>
+          <div className="showcase-actions">
             {destacado && (
               <Link to={`/bienes/${destacado.id}`} className="cta-pill-btn">
-                <span className="cta-plus" aria-hidden="true">+</span>
+                <Compass aria-hidden="true" />
                 <span>Descubrir {nombreCorto(destacado.nombre, 28)}</span>
               </Link>
             )}
@@ -83,18 +82,18 @@ function Narrativa() {
         </div>
 
         <div className="showcase-collage">
-          <Foto className="collage-photo-main" src={foto(0)?.url} alt={foto(0)?.texto_alternativo || "Composición urbana patrimonial de La Paz"} etiqueta="FOTOGRAFÍA EDITORIAL 01" pista="Se completa con la portada de las fichas" />
-          <Foto className="collage-photo-secondary" src={foto(1)?.url} alt={foto(1)?.texto_alternativo || "Detalle arquitectónico paceño"} etiqueta="CÁPSULA VISUAL 02" />
-          <Foto className="floating-sticker-slot" transparente cover={false} src="/assets/images/floating/editorial-sticker.png" alt="" etiqueta="STICKER FLOTANTE" />
+          <Foto className="collage-photo-main" tono="neutral" src={foto(0)?.url} alt={foto(0)?.texto_alternativo || "Composición urbana patrimonial de La Paz"} etiqueta="Fotografía editorial 01" pista="Se completa con la portada de las fichas" />
+          <Foto className="collage-photo-secondary" tono="warm" src={foto(1)?.url} alt={foto(1)?.texto_alternativo || "Detalle arquitectónico paceño"} etiqueta="Cápsula visual 02" />
+          <Foto className="floating-sticker-slot" transparente cover={false} imgClassName="diecut" src="/assets/images/floating/editorial-sticker.png" alt="" etiqueta="Sticker" />
         </div>
       </div>
 
       <div className="chronicles-header">
         <div>
-          <span className="explore-kicker">CÁPSULAS DEL ARCHIVO</span>
+          <span className="kicker">cápsulas del archivo</span>
           <h3 className="chronicles-title">Claves para leer el patrimonio paceño</h3>
         </div>
-        <Link to={inmaterial ? `/bienes/${inmaterial.id}` : "/explorar"} className="hero-secondary-link">
+        <Link to={inmaterial ? `/bienes/${inmaterial.id}` : "/explorar"} className="text-link">
           Ir al patrimonio inmaterial →
         </Link>
       </div>
@@ -102,7 +101,7 @@ function Narrativa() {
       <div className="chronicles-grid">
         {capsulas.map(([jp, titulo, texto], i) => (
           <article className="chronicle-item" key={titulo}>
-            <Foto className="chronicle-item__pill-media" src={foto(i + 2)?.url ?? foto(i)?.url} alt={foto(i + 2)?.texto_alternativo || foto(i)?.texto_alternativo || titulo} etiqueta={`ESPACIO FOTO 0${i + 1}`} />
+            <Foto className="chronicle-item__media slot--lg" tono={["warm", "sage", "slate"][i]} src={foto(i + 2)?.url ?? foto(i)?.url} alt={foto(i + 2)?.texto_alternativo || foto(i)?.texto_alternativo || titulo} etiqueta={`Espacio foto 0${i + 1}`} />
             <span className="chronicle-item__jp" lang="ja">{jp}</span>
             <h4 className="chronicle-item__title">{titulo}</h4>
             <p className="chronicle-item__text">{texto}</p>
@@ -194,114 +193,125 @@ export default function Explorar() {
       notaMenu="Mapa interactivo y catálogo patrimonial de La Paz"
       cta={{ descripcion: "Explora los circuitos patrimoniales y guarda tus paradas favoritas para armar tu recorrido cultural por la ciudad.", texto: "+ Armar ruta", a: "/rutas" }}
     >
-      <section className="explore-header-strip">
-        <div className="explore-title-group">
-          <span className="explore-kicker">CARTOGRAFÍA INTERACTIVA · CHUKIAGO MARKA</span>
-          <h1 className="explore-heading">Exploración Geográfica del Patrimonio</h1>
-        </div>
-        <div className="explore-stats-bar">
-          <span className="stat-pill" role="status" aria-live="polite">
-            <span className="stat-pill__dot" aria-hidden="true" />
-            <span>{textoContador || "Cargando bienes…"}</span>
-          </span>
-          <Link to="/rutas" className="btn-outline-pill">
-            Ver mi ruta guardada →
-          </Link>
-        </div>
-      </section>
-
-      <section className="geo-workspace" aria-label="Mapa interactivo y filtros patrimoniales">
-        <div className="map-viewport-col explorar__mapa">
-          <div className="map-floating-legend">
-            <p className="map-floating-legend__title">
+      <div className="page">
+        <header className="page-head">
+          <div>
+            <span className="kicker">cartografía interactiva · chukiago marka</span>
+            <h1 className="page-title">Exploración geográfica del patrimonio</h1>
+          </div>
+          <div className="explore-stats-bar">
+            <span className="stat-pill" role="status" aria-live="polite">
               <span className="stat-pill__dot" aria-hidden="true" />
-              MAPA DE BIENES PACEÑOS
-            </p>
-            <p className="map-floating-legend__desc">Haz clic en cualquier marcador numerado o tarjeta para inspeccionar su ubicación y abrir la ficha completa.</p>
+              <span>{textoContador || "Cargando bienes…"}</span>
+            </span>
+            <Link to="/rutas" className="btn-outline-pill">
+              Ver mi ruta guardada →
+            </Link>
+          </div>
+        </header>
+
+        <section className="explore-top" aria-label="Mapa interactivo y filtros patrimoniales">
+          <div className="map-viewport-col explorar__mapa">
+            <div className="map-stage">
+              <MapaBienes
+                className="interactive-map-canvas"
+                bienes={marcadores}
+                foco={foco}
+                posicion={posicion}
+                reinicio={reinicio}
+                onSeleccionar={(id) => setFoco({ id, volar: false })}
+                onAbrir={(id) => navegar(`/bienes/${id}`)}
+              />
+
+              <span className="map-chip">
+                <Compass aria-hidden="true" />
+                Mapa de bienes paceños
+              </span>
+              <button type="button" className="btn-outline-pill map-reset-btn" onClick={restablecer}>
+                Restablecer vista
+              </button>
+            </div>
+
+            {mapa.error && (
+              <div className="mapa__aviso">
+                <ErrorCarga error={mapa.error} onReintentar={mapa.reintentar} />
+                <p>La lista sigue disponible.</p>
+              </div>
+            )}
+            {mapa.datos && sinUbicacion > 0 && (
+              <p className="mapa__nota">
+                {sinUbicacion === 1 ? "1 bien no tiene" : `${sinUbicacion} bienes no tienen`} ubicación puntual y solo {sinUbicacion === 1 ? "aparece" : "aparecen"} en la lista.
+              </p>
+            )}
+
+            <div className="map-legend-bar">
+              <span>Haz clic en cualquier marcador numerado o tarjeta para inspeccionar su ubicación y abrir la ficha completa.</span>
+              <span className="map-legend-bar__coords">16°30′S · 68°08′W</span>
+            </div>
           </div>
 
-          <button type="button" className="btn-outline-pill map-reset-btn" onClick={restablecer}>
-            Restablecer vista
-          </button>
-
-          <MapaBienes
-            className="interactive-map-canvas"
-            bienes={marcadores}
-            foco={foco}
-            posicion={posicion}
-            reinicio={reinicio}
-            onSeleccionar={(id) => setFoco({ id, volar: false })}
-            onAbrir={(id) => navegar(`/bienes/${id}`)}
-          />
-          {mapa.error && (
-            <div className="mapa__aviso">
-              <ErrorCarga error={mapa.error} onReintentar={mapa.reintentar} />
-              <p>La lista sigue disponible.</p>
+          <aside className="filter-sidebar-col editorial-card" aria-label="Panel lateral de búsqueda y filtros">
+            <AbejaVoxel className="filter-sidebar-col__bee" />
+            <div className="filter-sidebar-col__head">
+              <span className="sidebar-title">Curaduría & filtros</span>
             </div>
-          )}
-          {mapa.datos && sinUbicacion > 0 && (
-            <p className="mapa__nota">
-              {sinUbicacion === 1 ? "1 bien no tiene" : `${sinUbicacion} bienes no tienen`} ubicación puntual y solo {sinUbicacion === 1 ? "aparece" : "aparecen"} en la lista.
-            </p>
-          )}
-
-          <section className="map-results-strip explorar__lista" aria-label="Lista de bienes">
-            <div className="map-results-strip__header">
-              <span className="map-results-strip__label">RESULTADOS PATRIMONIALES SELECCIONABLES</span>
-              <span className="map-results-strip__hint">Selecciona una tarjeta para abrir su vista de detalle</span>
+            <Filtros
+              texto={texto}
+              onTexto={setTexto}
+              categoria={categoria}
+              onCategoria={(valor) => actualizar({ categoria: valor }, true)}
+              categorias={categorias.datos ?? []}
+              hayFiltros={hayFiltros}
+              onLimpiar={limpiar}
+            />
+            <BarraUbicacion />
+            <div className="sidebar-section sidebar-section--ruled">
+              <span className="sidebar-label">04. ACCESO RÁPIDO A MARCADORES</span>
+              <ul className="sidebar-mini-list" aria-label="Bienes con ubicación en el mapa">
+                {marcadores.map((bien) => (
+                  <li key={bien.id} className={`sidebar-site-item${foco?.id === bien.id ? " is-selected" : ""}`}>
+                    <button type="button" className="sidebar-site-item__name" onClick={() => enfocar(bien.id)}>
+                      <MapPin aria-hidden="true" />
+                      {bien.nombre}
+                    </button>
+                    <Link to={`/bienes/${bien.id}`} className="sidebar-site-item__go" aria-label={`Abrir ficha de ${bien.nombre}`}>
+                      Ficha →
+                    </Link>
+                  </li>
+                ))}
+              </ul>
+              {mapa.datos && marcadores.length === 0 && <p className="ubicacion__texto">Ningún marcador coincide con los filtros.</p>}
             </div>
-            {lista.cargando && !lista.datos && <Cargando texto="Cargando bienes…" />}
-            {lista.error && lista.error.estado !== 404 && <ErrorCarga error={lista.error} onReintentar={lista.reintentar} />}
-            {lista.datos && lista.datos.results.length === 0 && (
-              <Vacio titulo="No encontramos bienes con esos criterios.">
-                <p>Prueba con otra palabra o quita los filtros.</p>
-                {hayFiltros && (
-                  <button type="button" className="btn-outline-pill" onClick={limpiar}>
-                    Quitar filtros
-                  </button>
-                )}
-              </Vacio>
-            )}
-            {lista.datos && lista.datos.results.length > 0 && (
-              <>
-                <ListaBienes bienes={lista.datos.results} seleccionado={foco?.id} />
-                <Paginacion pagina={pagina} total={lista.datos.count} tamano={TAMANO_PAGINA} onCambiar={(n) => actualizar({ page: n === 1 ? "" : n })} />
-              </>
-            )}
-          </section>
-        </div>
+          </aside>
+        </section>
 
-        <aside className="filter-sidebar-col" aria-label="Panel lateral de búsqueda y filtros">
-          <Filtros
-            texto={texto}
-            onTexto={setTexto}
-            categoria={categoria}
-            onCategoria={(valor) => actualizar({ categoria: valor }, true)}
-            categorias={categorias.datos ?? []}
-            hayFiltros={hayFiltros}
-            onLimpiar={limpiar}
-          />
-          <BarraUbicacion />
-          <div className="sidebar-section">
-            <span className="sidebar-label">04. ACCESO RÁPIDO A MARCADORES</span>
-            <ul className="sidebar-mini-list" aria-label="Bienes con ubicación en el mapa">
-              {marcadores.map((bien) => (
-                <li key={bien.id} className={`sidebar-site-item${foco?.id === bien.id ? " is-selected" : ""}`}>
-                  <button type="button" className="sidebar-site-item__name" onClick={() => enfocar(bien.id)}>
-                    {bien.nombre}
-                  </button>
-                  <Link to={`/bienes/${bien.id}`} className="sidebar-site-item__go" aria-label={`Abrir ficha de ${bien.nombre}`}>
-                    Ficha →
-                  </Link>
-                </li>
-              ))}
-            </ul>
-            {mapa.datos && marcadores.length === 0 && <p className="ubicacion__texto">Ningún marcador coincide con los filtros.</p>}
+        <section className="index-section explorar__lista" aria-label="Lista de bienes">
+          <div className="index-section__head">
+            <span className="index-section__title">Índice visual · resultados patrimoniales</span>
+            <span className="index-section__hint">Selecciona una tarjeta para abrir su vista de detalle</span>
           </div>
-        </aside>
-      </section>
+          {lista.cargando && !lista.datos && <Cargando texto="Cargando bienes…" />}
+          {lista.error && lista.error.estado !== 404 && <ErrorCarga error={lista.error} onReintentar={lista.reintentar} />}
+          {lista.datos && lista.datos.results.length === 0 && (
+            <Vacio titulo="No encontramos bienes con esos criterios.">
+              <p>Prueba con otra palabra o quita los filtros.</p>
+              {hayFiltros && (
+                <button type="button" className="btn-outline-pill" onClick={limpiar}>
+                  Quitar filtros
+                </button>
+              )}
+            </Vacio>
+          )}
+          {lista.datos && lista.datos.results.length > 0 && (
+            <>
+              <ListaBienes bienes={lista.datos.results} seleccionado={foco?.id} />
+              <Paginacion pagina={pagina} total={lista.datos.count} tamano={TAMANO_PAGINA} onCambiar={(n) => actualizar({ page: n === 1 ? "" : n })} />
+            </>
+          )}
+        </section>
 
-      <Narrativa />
+        <Narrativa />
+      </div>
     </Marco>
   );
 }

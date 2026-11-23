@@ -1,26 +1,77 @@
 /* ==========================================================================
-   TOKENS & VARIABLES DE DISEÑO — PACEÑO (FIDELIDAD ESTRICTA A LA REFERENCIA)
+   TOKENS DE DISEÑO — PACEÑO · lenguaje visual «Kanso Archive Editorial»
+   Valores copiados 1:1 de tailwind.config.js e index.css del proyecto de referencia
+   (colores, tipografías, sombras, radios y curvas de animación).
    ========================================================================== */
 :root {
-  --bg-outer: #e5e5e5;
-  --bg-canvas: #ffffff;
-  --bg-soft: #f7f7f6;
-  --ink-black: #0a0a0a;
-  --ink-dark: #1c1c1c;
-  --ink-muted: #555555;
-  --crimson-japan: #c8161d;
-  --crimson-hover: #a81016;
-  --amber-cta: #f7a823;
-  --amber-cta-hover: #f9b53f;
-  --border-subtle: #c8c8c8;
-  --border-strong: #0a0a0a;
+  /* Lienzos (crema cálido de la paleta «Soft Autumn») */
+  --canvas-pure: #fffdf8;
+  --canvas-soft: #faf6ec;
+  --canvas-paper: #f2ebdd;
+  --canvas-warm: #ede3cf;
 
-  --font-display: 'Space Grotesk', sans-serif;
-  --font-sans: 'Plus Jakarta Sans', sans-serif;
-  --font-jp: 'Noto Serif JP', serif;
+  /* Líneas */
+  --line-subtle: #efe6d4;
+  --line-default: #e2d6be;
+  --line-strong: #cdbe9f;
+  --line-card: #e9dfc9;
 
-  --ease-editorial: cubic-bezier(0.22, 1, 0.36, 1);
-  --shadow-frame: 0 24px 60px rgba(0, 0, 0, 0.08);
-  --shadow-card: 0 12px 28px rgba(0, 0, 0, 0.06);
-  --shadow-float: 0 18px 38px rgba(0, 0, 0, 0.12);
+  /* Tinta (marrones profundos) */
+  --ink-primary: #4f382b;
+  --ink-secondary: #7c5b2e;
+  --ink-muted: #977857;
+  --ink-faint: #bdaf82;
+  --ink-sticker: #5a3c2d;
+
+  /* «Salvia» → verdes oliva */
+  --sage-50: #f1f2e6;
+  --sage-100: #e2e4cc;
+  --sage-200: #c9cda3;
+  --sage-300: #a09245;
+  --sage-400: #747a3a;
+
+  /* «Pizarra» → verdes azulados (teal) */
+  --slate-50: #eef4f2;
+  --slate-100: #d8e5e0;
+  --slate-200: #a9c4ba;
+  --slate-300: #3b6e5f;
+  --slate-400: #24524f;
+
+  /* Arena */
+  --sand-50: #faf4e6;
+  --sand-100: #f0e4c9;
+  --sand-200: #e2d0a8;
+  --sand-300: #d4b77b;
+
+  /* Mantequilla → mostaza */
+  --butter-100: #f5e8c4;
+  --butter-200: #e5c98c;
+  --butter-300: #d0aa5c;
+
+  /* Terracota */
+  --terracotta-100: #f5e2d8;
+  --terracotta-200: #e0b09c;
+  --terracotta-300: #bd755e;
+  --terracotta-400: #a24d38;
+
+  /* Tipografías (Cinzel · Cormorant Garamond · Plus Jakarta Sans · Caveat) */
+  --font-display: "Cinzel", "Cormorant Garamond", Georgia, serif;
+  --font-serif: "Cormorant Garamond", Georgia, serif;
+  --font-sans: "Plus Jakarta Sans", -apple-system, BlinkMacSystemFont, sans-serif;
+  --font-script: "Caveat", cursive;
+
+  /* Sombras */
+  --shadow-editorial: 0 10px 30px -10px rgba(79, 56, 43, 0.06), 0 2px 8px -2px rgba(79, 56, 43, 0.03);
+  --shadow-editorial-lg: 0 20px 48px -14px rgba(79, 56, 43, 0.09), 0 6px 16px -4px rgba(79, 56, 43, 0.04);
+  --shadow-sticker: 0 6px 16px rgba(79, 56, 43, 0.1), 0 1px 4px rgba(79, 56, 43, 0.06);
+
+  /* Radios */
+  --radius-editorial: 18px;
+  --radius-editorial-lg: 24px;
+
+  /* Curva de las animaciones (fade-in 0.45s · scale-in 0.38s · slide-up 0.5s) */
+  --ease-editorial: cubic-bezier(0.16, 1, 0.3, 1);
+
+  /* Ancho que ocupa la barra lateral fija (72 px + 16 px de margen + holgura) */
+  --sidebar-gutter: 104px;
 }

@@ -4,7 +4,7 @@ import { useEffect, useRef } from "react";
 import { distanciaA, formatearDistancia } from "../lib/distancia";
 import { nombreTipo } from "../lib/bienes";
 
-// Vista inicial del diseño de referencia (centro de La Paz); luego se encuadran los marcadores.
+// Vista inicial (centro de La Paz); luego se encuadran los marcadores.
 const CENTRO = [-16.4975, -68.1335];
 const ZOOM = 14;
 // CARTO (estilo Positron del diseño) exige una clave de API desde el 25/09/2026: sin ella sus teselas muestran
@@ -17,14 +17,14 @@ const TESELAS = CLAVE_CARTO
 const ATRIBUCION_OSM = '© <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener noreferrer">Colaboradores de OpenStreetMap</a>';
 const ATRIBUCION = `${ATRIBUCION_OSM}${CLAVE_CARTO ? ' © <a href="https://carto.com/attributions" target="_blank" rel="noopener noreferrer">CARTO</a>' : ""} · PACEÑO`;
 
-/** Pin numerado del diseño. `texto` es el número del marcador (o ★ en la ficha). */
+/** Pin numerado (píldora circular del diseño: blanco con borde; el activo, en pizarra). `texto` es el número del marcador (o ★ en la ficha). */
 function iconoPin(texto, seleccionado) {
   return L.divIcon({
     className: "marcador paceno-pin-wrapper",
     html: `<div class="paceno-pin${seleccionado ? " is-selected" : ""}"><span class="paceno-pin__inner">${texto}</span></div>`,
-    iconSize: [34, 34],
-    iconAnchor: [17, 34],
-    popupAnchor: [0, -34],
+    iconSize: [32, 32],
+    iconAnchor: [16, 16],
+    popupAnchor: [0, -18],
   });
 }
 
@@ -130,13 +130,13 @@ export default function MapaBienes({ bienes, foco, posicion, onAbrir, onSeleccio
   useEffect(() => {
     capaPosicion.current?.clearLayers();
     if (posicion) {
-      L.circleMarker([posicion.lat, posicion.lon], { radius: 8, color: "#fff", weight: 3, fillColor: "#c8161d", fillOpacity: 1 })
+      L.circleMarker([posicion.lat, posicion.lon], { radius: 8, color: "#fff", weight: 3, fillColor: "#ad7765", fillOpacity: 1 })
         .bindTooltip("Tu ubicación aproximada")
         .addTo(capaPosicion.current);
     }
   }, [posicion]);
 
-  // Pin seleccionado en rojo (el diseño marca el pin activo)
+  // Pin seleccionado (el diseño marca el pin activo)
   useEffect(() => {
     if (ficha) return;
     for (const [id, { marcador }] of marcadores.current) marcador.getElement()?.querySelector(".paceno-pin")?.classList.toggle("is-selected", id === foco?.id);

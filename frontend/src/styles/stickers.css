@@ -1,0 +1,59 @@
+/* ==========================================================================
+   STICKERS EDITORIALES — tamaños y sombras del EditorialStickers.jsx de la referencia
+   ========================================================================== */
+.sticker {
+  pointer-events: none;
+  user-select: none;
+}
+
+.sticker svg {
+  display: block;
+  overflow: visible;
+}
+
+.sticker--seal svg {
+  width: 96px;
+  height: 96px;
+  filter: drop-shadow(0 1px 2px rgba(0, 0, 0, 0.05));
+}
+
+.sticker--duck {
+  display: inline-flex;
+  align-items: flex-end;
+  gap: 6px;
+}
+
+.sticker--duck svg {
+  width: 48px;
+  height: 44px;
+}
+
+.sticker--bee svg {
+  width: 96px;
+  height: 80px;
+  filter: drop-shadow(0 6px 14px rgba(74, 74, 72, 0.12));
+}
+
+.sticker--explorers svg {
+  width: 112px;
+  height: 96px;
+  filter: drop-shadow(0 8px 18px rgba(74, 74, 72, 0.12));
+}
+
+.sticker--totem svg {
+  width: 64px;
+  height: 80px;
+  filter: drop-shadow(0 6px 12px rgba(74, 74, 72, 0.1));
+}
+
+@media (min-width: 640px) {
+  .sticker--seal svg { width: 112px; height: 112px; }
+  .sticker--bee svg { width: 112px; height: 96px; }
+  .sticker--explorers svg { width: 128px; height: 112px; }
+}
+
+/* Ilustración propia del proyecto tratada como sticker troquelado (contorno blanco + sombra suave) */
+.diecut {
+  filter: drop-shadow(2px 0 0 #fff) drop-shadow(-2px 0 0 #fff) drop-shadow(0 2px 0 #fff) drop-shadow(0 -2px 0 #fff)
+    drop-shadow(0 6px 14px rgba(74, 74, 72, 0.12));
+}

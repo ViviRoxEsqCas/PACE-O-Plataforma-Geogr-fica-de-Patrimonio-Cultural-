@@ -1,3 +1,4 @@
+import { Search } from "lucide-react";
 import { useId } from "react";
 
 /** Secciones 01 (búsqueda directa) y 02 (categorías patrimoniales) del panel lateral. */
@@ -13,6 +14,7 @@ export default function Filtros({ texto, onTexto, categoria, onCategoria, catego
           <span>01. BÚSQUEDA DIRECTA</span>
         </label>
         <div className="search-input-box">
+          <Search className="search-input-box__icon" aria-hidden="true" />
           <input
             id={idBusqueda}
             type="search"

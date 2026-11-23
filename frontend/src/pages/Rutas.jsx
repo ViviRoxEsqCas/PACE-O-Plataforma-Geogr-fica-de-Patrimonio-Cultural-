@@ -1,6 +1,8 @@
 import { useCallback, useEffect, useMemo } from "react";
+import { ArrowRight, CheckCircle2, Plus } from "lucide-react";
 import { Link } from "react-router-dom";
 import { useAviso } from "../components/Aviso";
+import { TotemVoxel } from "../components/Stickers";
 import { Cargando, ErrorCarga } from "../components/Estados";
 import { TarjetaBien } from "../components/ListaBienes";
 import Marco from "../components/Marco";
@@ -57,23 +59,20 @@ export default function Rutas() {
       notaMenu="Circuitos temáticos e itinerario personal"
       cta={{ descripcion: "Cada ruta reúne los bienes de una misma categoría. Guarda tus favoritos desde su ficha para armar tu recorrido.", texto: "+ Abrir mapa", a: "/explorar" }}
     >
-      <section className="routes-hero-band">
+      <div className="page">
+      <header className="page-head routes-hero-band">
         <div>
-          <span className="explore-kicker">RECORRIDOS TEMÁTICOS · LA PAZ</span>
-          <h1 className="explore-heading" style={{ marginTop: 8 }}>
-            Rutas Culturales e Itinerarios
-          </h1>
-          <p style={{ fontSize: "0.9rem", lineHeight: 1.65, color: "var(--ink-muted)", marginTop: 12, maxWidth: 620 }}>
-            Selecciona cualquiera de los recorridos temáticos para visitar sus fichas patrimoniales o visualizar sus paradas directamente en el mapa interactivo de PACEÑO.
-          </p>
+          <span className="kicker">recorridos temáticos · la paz</span>
+          <h1 className="page-title">Rutas culturales e itinerarios</h1>
         </div>
-        <div style={{ display: "flex", gap: 12, flexWrap: "wrap", justifyContent: "flex-end" }}>
+        <div className="page-head__actions">
+          <p className="routes-hero-band__text">Selecciona cualquiera de los recorridos temáticos para visitar sus fichas patrimoniales o visualizar sus paradas directamente en el mapa interactivo de PACEÑO.</p>
           <Link to="/explorar" className="cta-pill-btn">
-            <span className="cta-plus" aria-hidden="true">+</span>
+            <Plus aria-hidden="true" />
             <span>Abrir mapa completo</span>
           </Link>
         </div>
-      </section>
+      </header>
 
       {cargando && bienes.length === 0 && (
         <div className="pagina-estado">
@@ -96,7 +95,7 @@ export default function Rutas() {
                 <div>
                   <div className="route-card__top">
                     <span className="route-card__num">
-                      RUTA {dos(i + 1)} · {ruta.paradas.length} {ruta.paradas.length === 1 ? "PARADA" : "PARADAS"}
+                      Ruta {dos(i + 1)} · {ruta.paradas.length} {ruta.paradas.length === 1 ? "parada" : "paradas"}
                     </span>
                     <h2 className="route-card__title">{ruta.nombre}</h2>
                     <p className="route-card__meta">{distancia ? `Recorrido aproximado: ${distancia} en línea recta` : "Sin recorrido físico entre paradas"}</p>
@@ -108,7 +107,7 @@ export default function Rutas() {
                         <Link to={`/bienes/${parada.id}`}>
                           {dos(j + 1)}. {parada.nombre}
                         </Link>
-                        <span aria-hidden="true">→</span>
+                        <CheckCircle2 size={14} aria-hidden="true" />
                       </li>
                     ))}
                   </ul>
@@ -117,8 +116,8 @@ export default function Rutas() {
                   <Link to={`/explorar?categoria=${ruta.id}`} className="btn-outline-pill">
                     Ver en mapa
                   </Link>
-                  <Link to={`/bienes/${primera.id}`} className="heritage-card__link">
-                    Iniciar ruta →
+                  <Link to={`/bienes/${primera.id}`} className="text-link">
+                    Iniciar ruta <ArrowRight size={14} aria-hidden="true" style={{ verticalAlign: "-2px" }} />
                   </Link>
                 </div>
               </article>
@@ -127,13 +126,12 @@ export default function Rutas() {
         </section>
       )}
 
-      <section className="saved-itinerary-box" aria-label="Bienes guardados por la persona">
-        <div style={{ display: "flex", alignItems: "flex-end", justifyContent: "space-between", flexWrap: "wrap", gap: 12 }}>
+      <section className="saved-itinerary-box editorial-microgrid" aria-label="Bienes guardados por la persona">
+        <TotemVoxel className="saved-itinerary-box__sticker" />
+        <div className="saved-itinerary-box__head">
           <div>
-            <span className="explore-kicker">COLECCIÓN PERSONAL</span>
-            <h2 className="chronicles-title" style={{ marginTop: 6 }}>
-              Mi Itinerario Guardado
-            </h2>
+            <span className="kicker">colección personal</span>
+            <h2 className="chronicles-title">Mi itinerario guardado</h2>
           </div>
           <Link to="/explorar" className="btn-outline-pill">
             + Añadir más sitios desde el mapa
@@ -145,7 +143,8 @@ export default function Rutas() {
               <p className="estado__titulo">Aún no tienes sitios guardados en tu ruta personal.</p>
               <p>Explora el mapa o abre cualquier ficha patrimonial para añadir paradas. Se guardan solo en este navegador.</p>
               <Link to="/explorar" className="cta-pill-btn">
-                + Ir al mapa patrimonial
+                <Plus aria-hidden="true" />
+                Ir al mapa patrimonial
               </Link>
             </li>
           ) : (
@@ -153,7 +152,7 @@ export default function Rutas() {
               <TarjetaBien
                 key={bien.id}
                 bien={bien}
-                etiquetaFoto="PARADA GUARDADA"
+                etiquetaFoto="Parada guardada"
                 acciones={
                   <>
                     <button type="button" className="btn-text" onClick={() => quitar(bien)} aria-label={`Quitar ${bien.nombre} del itinerario`}>
@@ -169,6 +168,7 @@ export default function Rutas() {
           )}
         </ul>
       </section>
+      </div>
     </Marco>
   );
 }

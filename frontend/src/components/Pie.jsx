@@ -1,6 +1,7 @@
 import { Link } from "react-router-dom";
 import { useCatalogo } from "../hooks/Catalogo";
 import { useRutaPatrimonio } from "./Cabecera";
+import { PatitoDoodle } from "./Stickers";
 
 /** Pie global del diseño. `cta`: { texto, descripcion, etiqueta, a } cambia el recuadro de la derecha según la pantalla. */
 export default function Pie({ cta }) {
@@ -13,8 +14,8 @@ export default function Pie({ cta }) {
     <footer className="site-footer">
       <div className="footer-grid">
         <div className="footer-brand">
-          <Link to="/" className="footer-brand__mark">
-            ˚. ᵎᵎ <span>PACEÑO</span>
+          <Link to="/" className="footer-brand__mark" aria-label="Inicio PACEÑO">
+            paceño<span className="brand-logo__faint">archivo</span>
           </Link>
           <p className="footer-brand__desc">
             Plataforma interactiva de documentación, cartografía y puesta en valor del patrimonio cultural, arquitectónico e inmaterial de La Paz, Bolivia.
@@ -50,7 +51,7 @@ export default function Pie({ cta }) {
           <p className="footer-badge-box__text">
             {descripcion ?? "Explora los circuitos patrimoniales y guarda tus paradas favoritas para armar tu recorrido cultural por la ciudad."}
           </p>
-          <Link to={a} className="cta-pill-btn" style={{ alignSelf: "flex-start" }}>
+          <Link to={a} className="cta-pill-btn footer-badge-box__cta">
             {texto}
           </Link>
         </div>
@@ -58,11 +59,14 @@ export default function Pie({ cta }) {
 
       <div className="footer-bottom">
         <span>
-          <span className="footer-bottom__dot" />
+          <span className="footer-bottom__dot" aria-hidden="true" />
           PACEÑO · PROYECTO PATRIMONIAL LA PAZ (2026)
         </span>
         <span>CARTOGRAFÍA CULTURAL &amp; DISEÑO EDITORIAL</span>
-        <span>Taller de Proyecto · Informática · UMSA · Mapa base © OpenStreetMap y CARTO</span>
+        <span className="footer-bottom__credits">
+          Taller de Proyecto · Informática · UMSA · Mapa base © OpenStreetMap y CARTO
+          <PatitoDoodle />
+        </span>
       </div>
     </footer>
   );

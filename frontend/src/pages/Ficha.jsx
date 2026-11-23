@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
+import { ArrowLeft, ChevronLeft, ChevronRight, Compass, Plus, Check } from "lucide-react";
 import { Link, useLocation, useNavigate, useParams } from "react-router-dom";
 import { Cargando, ErrorCarga } from "../components/Estados";
 import Foto from "../components/Foto";
@@ -31,9 +32,10 @@ function Imagenes({ imagenes, nombre }) {
         <Foto
           as="div"
           className="detail-hero-photo"
+          tono="warm"
           src={imagen?.url}
           alt={imagen?.texto_alternativo || nombre}
-          etiqueta="FOTOGRAFÍA PRINCIPAL"
+          etiqueta="Fotografía principal"
           pista={imagen ? undefined : "Esta ficha todavía no tiene imágenes con autor y licencia verificados."}
         />
         {imagen && (
@@ -52,11 +54,11 @@ function Imagenes({ imagenes, nombre }) {
 
       {imagenes.length > 1 && (
         <div>
-          <p className="spec-box__label detail-gallery-label">GALERÍA VISUAL (SELECCIONA UNA VISTA)</p>
+          <p className="sidebar-title detail-gallery-label">Galería visual · selecciona una vista</p>
           <div className="detail-gallery-thumbs">
             {imagenes.map((miniatura, i) => (
               <button key={miniatura.id} type="button" className={`gallery-thumb-btn${i === activa ? " is-active" : ""}`} aria-label={`Ver fotografía ${i + 1} de ${imagenes.length}`} aria-pressed={i === activa} onClick={() => setActiva(i)}>
-                <Foto as="span" src={miniatura.url} alt="" etiqueta={`0${i + 1}`} />
+                <Foto as="span" tono={i % 3 === 1 ? "sage" : i % 3 === 2 ? "slate" : "warm"} src={miniatura.url} alt="" etiqueta={`0${i + 1}`} />
               </button>
             ))}
           </div>
@@ -121,16 +123,17 @@ export default function Ficha() {
 
         <div className="detail-actions-bar">
           <button type="button" className="btn-outline-pill" onClick={volver}>
-            ← Volver a explorar
+            <ArrowLeft size={14} aria-hidden="true" />
+            Volver a explorar
           </button>
           {anterior && (
             <Link to={`/bienes/${anterior.id}`} className="arrow-btn" aria-label={`Patrimonio anterior: ${anterior.nombre}`} title="Anterior">
-              ‹
+              <ChevronLeft size={16} aria-hidden="true" />
             </Link>
           )}
           {siguiente && (
-            <Link to={`/bienes/${siguiente.id}`} className="arrow-btn is-crimson" aria-label={`Patrimonio siguiente: ${siguiente.nombre}`} title="Siguiente">
-              ›
+            <Link to={`/bienes/${siguiente.id}`} className="arrow-btn is-sage" aria-label={`Patrimonio siguiente: ${siguiente.nombre}`} title="Siguiente">
+              <ChevronRight size={16} aria-hidden="true" />
             </Link>
           )}
         </div>
@@ -158,18 +161,18 @@ export default function Ficha() {
       )}
 
       {bien && (
-        <article>
+        <article className="detail-card">
           <section className="detail-hero-grid" aria-label="Detalle del bien patrimonial">
             <Imagenes imagenes={bien.imagenes} nombre={bien.nombre} />
 
             <div className="detail-summary-col">
               <header>
                 <div className="detail-meta-row">
-                  <span className="detail-category-tag">{bien.categoria.nombre}</span>
                   <span className="detail-code-badge">{codigoBien(bien.id)}</span>
+                  <span className="detail-category-tag">{bien.categoria.nombre}</span>
                 </div>
-                <h1 className="detail-title">{bien.nombre}</h1>
                 <p className="detail-subtitle">Patrimonio cultural {bien.tipo === "material" ? "material" : "inmaterial"}</p>
+                <h1 className="detail-title">{bien.nombre}</h1>
                 <h2 id="t-desc" className="sr-only">
                   Descripción
                 </h2>
@@ -197,9 +200,11 @@ export default function Ficha() {
 
               <div className="detail-cta-group">
                 <button type="button" className={`cta-pill-btn${guardado ? " is-saved" : ""}`} aria-pressed={guardado} onClick={alternarRuta}>
-                  {guardado ? "✓ Guardado en mi ruta" : "+ Guardar en mi ruta"}
+                  {guardado ? <Check aria-hidden="true" /> : <Plus aria-hidden="true" />}
+                  {guardado ? "Guardado en mi ruta" : "Guardar en mi ruta"}
                 </button>
-                <Link to={enlaceMapa(bien)} className="btn-crimson-pill">
+                <Link to={enlaceMapa(bien)} className="btn-paper-pill">
+                  <Compass aria-hidden="true" />
                   {bien.tiene_ubicacion ? "Ubicar en mapa interactivo" : "Buscar en el catálogo"}
                 </Link>
               </div>
@@ -237,9 +242,9 @@ export default function Ficha() {
                   : bien.direccion_referencia?.trim() || "Manifestación cultural sin lugar fijo: se vive en las celebraciones y prácticas de la comunidad."}
               </p>
               <div className="detail-routes-box">
-                <p className="spec-box__label">CONEXIÓN CON RUTAS PACEÑO</p>
+                <p className="spec-box__label">Conexión con rutas paceño</p>
                 <p>Integra este bien en un itinerario junto a otros hitos del catálogo y consulta tu colección personal.</p>
-                <Link to="/rutas" className="hero-secondary-link">
+                <Link to="/rutas" className="text-link">
                   Administrar mi itinerario →
                 </Link>
               </div>
@@ -292,20 +297,18 @@ export default function Ficha() {
 
           {relacionados.length > 0 && (
             <section className="detail-related-strip" aria-label="Otros patrimonios recomendados">
-              <div style={{ display: "flex", alignItems: "flex-end", justifyContent: "space-between", flexWrap: "wrap", gap: 12 }}>
+              <div className="detail-related-head">
                 <div>
-                  <span className="explore-kicker">CONTINÚA EL RECORRIDO</span>
-                  <h2 className="chronicles-title" style={{ marginTop: 6 }}>
-                    Otros Hitos Patrimoniales
-                  </h2>
+                  <span className="kicker">continúa el recorrido</span>
+                  <h2 className="chronicles-title">Otros hitos patrimoniales</h2>
                 </div>
                 <Link to="/explorar" className="btn-outline-pill">
                   Ver catálogo completo en mapa
                 </Link>
               </div>
-              <ul className="related-cards-row" style={{ listStyle: "none" }}>
+              <ul className="related-cards-row">
                 {relacionados.map((rel) => (
-                  <TarjetaBien key={rel.id} bien={rel} enlace="Explorar ficha →" etiquetaFoto="PATRIMONIO" />
+                  <TarjetaBien key={rel.id} bien={rel} enlace="Explorar ficha →" etiquetaFoto="Patrimonio" />
                 ))}
               </ul>
             </section>
