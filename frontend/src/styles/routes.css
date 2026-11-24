@@ -171,3 +171,235 @@
   top: -24px;
   z-index: 10;
 }
+
+/* ==========================================================================
+   RUTA A TU MEDIDA — generador de recorridos a pie según tiempo y ritmo
+   ========================================================================== */
+.ruta-medida {
+  display: grid;
+  gap: 24px;
+  padding: 20px;
+  border-radius: var(--radius-editorial-lg);
+}
+
+@media (min-width: 640px) {
+  .ruta-medida {
+    padding: 32px;
+  }
+}
+
+.ruta-medida__head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 12px 24px;
+}
+
+.ruta-medida__intro {
+  max-width: 460px;
+  font-size: 0.75rem;
+  line-height: 1.625;
+  color: var(--ink-secondary);
+}
+
+.ruta-medida__cuerpo {
+  display: grid;
+  gap: 24px;
+  align-items: start;
+}
+
+@media (min-width: 1024px) {
+  .ruta-medida__cuerpo {
+    grid-template-columns: minmax(0, 4fr) minmax(0, 7fr);
+  }
+}
+
+.ruta-medida__controles {
+  display: grid;
+  gap: 18px;
+  padding: 16px;
+  border: 1px solid var(--line-subtle);
+  border-radius: 16px;
+  background: var(--canvas-soft);
+}
+
+.ruta-medida__grupo {
+  display: grid;
+  gap: 8px;
+  min-width: 0;
+  border: 0;
+}
+
+.ruta-medida__grupo legend {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-bottom: 8px;
+  font-size: 11px;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--ink-muted);
+}
+
+.ruta-medida__grupo legend svg {
+  width: 14px;
+  height: 14px;
+  color: var(--sage-400);
+}
+
+.ruta-medida__chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.chip-ruta {
+  padding: 6px 14px;
+  border: 1px solid var(--line-default);
+  border-radius: 9999px;
+  background: var(--canvas-pure);
+  font-size: 0.75rem;
+  color: var(--ink-secondary);
+  cursor: pointer;
+  transition: background-color 0.25s ease, border-color 0.25s ease, color 0.25s ease;
+}
+
+.chip-ruta:hover:not(:disabled) {
+  background: var(--canvas-paper);
+  color: var(--ink-primary);
+}
+
+.chip-ruta[aria-pressed="true"] {
+  border-color: var(--sage-300);
+  background: var(--sage-100);
+  color: var(--ink-primary);
+  font-weight: 500;
+}
+
+.chip-ruta:disabled {
+  opacity: 0.6;
+  cursor: progress;
+}
+
+.ruta-medida__check {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 4px;
+  font-size: 0.75rem;
+  color: var(--ink-secondary);
+  cursor: pointer;
+}
+
+.ruta-medida__check input {
+  accent-color: var(--sage-400);
+}
+
+.ruta-medida__nota {
+  font-size: 11px;
+  line-height: 1.55;
+  color: var(--ink-muted);
+}
+
+.ruta-medida__resultado {
+  display: grid;
+  gap: 16px;
+  min-width: 0;
+}
+
+.ruta-medida__resumen {
+  list-style: none;
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px;
+  padding: 12px;
+  border: 1px solid var(--line-subtle);
+  border-radius: 16px;
+  background: var(--canvas-soft);
+  font-size: 11px;
+  color: var(--ink-muted);
+  text-align: center;
+}
+
+@media (min-width: 640px) {
+  .ruta-medida__resumen {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+  }
+}
+
+.ruta-medida__resumen strong {
+  display: block;
+  font-size: 1.125rem;
+  font-weight: 500;
+  color: var(--ink-primary);
+}
+
+.ruta-medida__mapa {
+  position: relative;
+  z-index: 1;
+  width: 100%;
+  height: 280px;
+  overflow: hidden;
+  border: 1px solid var(--line-default);
+  border-radius: 16px;
+}
+
+.ruta-medida__paradas {
+  list-style: none;
+  display: grid;
+  gap: 10px;
+}
+
+.ruta-medida__paradas li {
+  display: grid;
+  grid-template-columns: 36px minmax(0, 1fr);
+  gap: 12px;
+  align-items: start;
+  padding: 10px 12px;
+  border: 1px solid var(--line-subtle);
+  border-radius: 12px;
+  background: var(--canvas-pure);
+}
+
+.ruta-medida__num {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  border: 1px solid var(--line-default);
+  border-radius: 50%;
+  background: var(--sage-50);
+  font-size: 11px;
+  font-weight: 500;
+  color: var(--ink-primary);
+}
+
+.ruta-medida__nombre {
+  font-size: 0.875rem;
+  font-weight: 500;
+  color: var(--ink-primary);
+  text-decoration: none;
+}
+
+.ruta-medida__nombre:hover {
+  color: var(--sage-400);
+}
+
+.ruta-medida__meta {
+  font-size: 11px;
+  line-height: 1.5;
+  color: var(--ink-muted);
+}
+
+.ruta-medida__regreso {
+  align-items: center;
+  background: var(--canvas-soft);
+}
+
+.ruta-medida__acciones {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}

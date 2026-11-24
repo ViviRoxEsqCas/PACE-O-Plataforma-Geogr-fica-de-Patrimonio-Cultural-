@@ -57,13 +57,14 @@ function contenidoVistaPrevia(bien, posicion, onAbrir) {
  * Mapa Leaflet con un pin numerado por bien con coordenadas (RF-07).
  * bienes: con latitud/longitud · foco: { id, volar } del bien a destacar (objeto nuevo en cada petición)
  * posicion: { lat, lon } | null · reinicio: número que, al cambiar, restablece la vista
- * onAbrir(id) abre la ficha · onSeleccionar(id) avisa del pin pulsado · ficha: versión de un solo bien (★, sin vista previa).
+ * trazo: [[lat, lon], …] opcional que se dibuja como línea punteada (p. ej. «Ruta a tu medida») · onAbrir(id) abre la ficha · onSeleccionar(id) avisa del pin pulsado · ficha: versión de un solo bien (★, sin vista previa).
  */
-export default function MapaBienes({ bienes, foco, posicion, onAbrir, onSeleccionar, reinicio = 0, ficha = false, className = "", etiqueta = "Mapa de bienes patrimoniales" }) {
+export default function MapaBienes({ bienes, foco, posicion, onAbrir, onSeleccionar, reinicio = 0, ficha = false, trazo = null, className = "", etiqueta = "Mapa de bienes patrimoniales" }) {
   const contenedor = useRef(null);
   const mapa = useRef(null);
   const capa = useRef(null);
   const capaPosicion = useRef(null);
+  const capaTrazo = useRef(null);
   const marcadores = useRef(new Map()); // id → { marcador, numero }
   const abrirRef = useRef(onAbrir);
   abrirRef.current = onAbrir;
@@ -86,6 +87,7 @@ export default function MapaBienes({ bienes, foco, posicion, onAbrir, onSeleccio
     L.control.zoom({ position: "bottomright", zoomInTitle: "Acercar", zoomOutTitle: "Alejar" }).addTo(instancia);
     L.tileLayer(TESELAS, { maxZoom: 19, attribution: ATRIBUCION }).addTo(instancia);
     capa.current = L.layerGroup().addTo(instancia);
+    capaTrazo.current = L.layerGroup().addTo(instancia);
     capaPosicion.current = L.layerGroup().addTo(instancia);
     mapa.current = instancia;
     // El diseño reacomoda el mapa al cambiar de ancho (tablet/móvil) o al cargar las tipografías.
@@ -125,6 +127,13 @@ export default function MapaBienes({ bienes, foco, posicion, onAbrir, onSeleccio
       encuadrar();
     }
   }, [bienes, posicion]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // Trazo opcional entre paradas (línea recta punteada: orienta el orden, no es una ruta de calles)
+  const claveTrazo = trazo ? trazo.map((p) => p.join(",")).join(";") : "";
+  useEffect(() => {
+    capaTrazo.current?.clearLayers();
+    if (trazo && trazo.length > 1) L.polyline(trazo, { color: "#3b6e5f", weight: 3, opacity: 0.8, dashArray: "6 8", interactive: false }).addTo(capaTrazo.current);
+  }, [claveTrazo]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Posición de la persona (solo si la concedió)
   useEffect(() => {

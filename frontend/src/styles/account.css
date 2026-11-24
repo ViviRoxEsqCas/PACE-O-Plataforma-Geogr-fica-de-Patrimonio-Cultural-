@@ -343,10 +343,6 @@
   width: 100%;
 }
 
-.account-logro__slot .asset-slot__placeholder {
-  display: flex;
-}
-
 .account-logro__slot .asset-slot__tag {
   font-family: var(--font-serif);
   font-size: 1rem;
@@ -450,4 +446,270 @@
 
 .account-login__acciones {
   justify-content: space-between;
+}
+
+/* ---------- Banner (cubierta) y botones sobre la portada ---------- */
+.account-pill-row {
+  position: absolute;
+  top: 16px;
+  right: 16px;
+  z-index: 3;
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 8px;
+}
+
+.account-pill-row .account-pill--glass {
+  position: static;
+}
+
+.account-cover .asset-image {
+  object-fit: cover;
+}
+
+.account-banner {
+  max-width: 640px;
+}
+
+.account-banner__label {
+  font-size: 0.75rem;
+  font-weight: 500;
+  color: var(--ink-primary);
+}
+
+.perfil-banner {
+  overflow: hidden;
+  border-radius: var(--radius-editorial-lg);
+}
+
+.perfil-banner__img,
+.perfil-banner__vacio {
+  display: block;
+  width: 100%;
+  aspect-ratio: 21 / 6;
+  border: 0;
+  border-radius: 0;
+}
+
+.perfil-banner__vacio {
+  background-color: var(--canvas-paper);
+}
+
+/* ---------- Selector de archivos (reemplaza el «Choose file» nativo) ---------- */
+.file-picker {
+  position: relative;
+}
+
+.file-picker__input {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  clip-path: inset(50%);
+  white-space: nowrap;
+}
+
+.file-picker__zone {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 12px 14px;
+  border: 1.5px dashed var(--line-strong);
+  border-radius: 16px;
+  background: var(--canvas-soft);
+  cursor: pointer;
+  transition: border-color 0.25s ease, background-color 0.25s ease, box-shadow 0.25s ease;
+}
+
+.file-picker__zone:hover,
+.file-picker.is-dragging .file-picker__zone {
+  border-color: var(--sage-300);
+  background: var(--sage-50);
+}
+
+.file-picker__input:focus-visible + .file-picker__zone {
+  border-color: var(--sage-400);
+  box-shadow: 0 0 0 3px var(--sage-100);
+}
+
+.file-picker.is-disabled .file-picker__zone {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.file-picker__preview {
+  flex: none;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 56px;
+  height: 56px;
+  overflow: hidden;
+  border: 1px solid var(--line-default);
+  border-radius: 50%;
+  background: var(--canvas-pure);
+  color: var(--ink-muted);
+}
+
+.file-picker__preview svg {
+  width: 20px;
+  height: 20px;
+}
+
+.file-picker__preview img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.file-picker--banner .file-picker__preview {
+  width: 112px;
+  height: 56px;
+  border-radius: 12px;
+}
+
+.file-picker__texto {
+  flex: 1;
+  display: grid;
+  gap: 2px;
+  min-width: 0;
+}
+
+.file-picker__titulo {
+  font-size: 0.75rem;
+  font-weight: 500;
+  color: var(--ink-primary);
+}
+
+.file-picker__ayuda {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 11px;
+  color: var(--ink-muted);
+}
+
+.file-picker__boton {
+  flex: none;
+  pointer-events: none;
+}
+
+.file-picker__zone:hover .file-picker__boton {
+  background: var(--canvas-paper);
+  color: var(--ink-primary);
+}
+
+.file-picker__quitar {
+  position: absolute;
+  top: -8px;
+  right: -8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 24px;
+  height: 24px;
+  border: 1px solid var(--line-default);
+  border-radius: 50%;
+  background: var(--canvas-pure);
+  color: var(--ink-secondary);
+  cursor: pointer;
+  box-shadow: var(--shadow-editorial);
+}
+
+.file-picker__quitar:hover {
+  background: var(--terracotta-100);
+  color: var(--ink-primary);
+}
+
+.file-picker__quitar svg {
+  width: 12px;
+  height: 12px;
+}
+
+@media (max-width: 479px) {
+  .file-picker__boton {
+    display: none;
+  }
+}
+
+/* ---------- Imágenes propias de los logros ---------- */
+.logro-imagen {
+  position: relative;
+}
+
+.logro-imagen__img {
+  object-fit: contain;
+  padding: 10px;
+  transition: filter 0.3s ease, opacity 0.3s ease;
+}
+
+.logro-imagen.is-bloqueado .logro-imagen__img {
+  filter: grayscale(1);
+  opacity: 0.4;
+}
+
+.logro-imagen__candado {
+  position: absolute;
+  right: 8px;
+  bottom: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 24px;
+  height: 24px;
+  border: 1px solid var(--line-default);
+  border-radius: 50%;
+  background: var(--canvas-pure);
+  color: var(--ink-muted);
+}
+
+.account-logro__texto {
+  display: grid;
+  gap: 2px;
+  padding: 0 4px;
+}
+
+.account-logro__texto strong {
+  font-size: 0.8125rem;
+  font-weight: 500;
+  color: var(--ink-primary);
+}
+
+.account-logro__texto span {
+  font-size: 11px;
+  line-height: 1.45;
+  color: var(--ink-secondary);
+}
+
+.account-board__grid .logro--pendiente.editorial-card {
+  background: var(--canvas-soft);
+  box-shadow: none;
+}
+
+.account-board__grid .logro--pendiente .account-logro__texto strong {
+  color: var(--ink-secondary);
+}
+
+/* Variante compacta (perfil público y ranking): miniatura + texto */
+.logro.logro--imagen {
+  grid-template-columns: 56px minmax(0, 1fr);
+  align-items: center;
+  gap: 12px;
+}
+
+.logro--imagen .logro-imagen {
+  width: 56px;
+  aspect-ratio: 4 / 5;
+}
+
+.logro--imagen .logro-imagen__img {
+  padding: 4px;
+}
+
+.logro--imagen .logro__texto {
+  display: grid;
+  gap: 2px;
 }

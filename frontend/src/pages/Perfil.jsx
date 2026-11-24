@@ -1,6 +1,8 @@
 import { useCallback, useState } from "react";
 import { Link, useParams } from "react-router-dom";
 import { Cargando, ErrorCarga } from "../components/Estados";
+import Foto from "../components/Foto";
+import ImagenLogro from "../components/ImagenLogro";
 import MarcoSocial from "../components/MarcoSocial";
 import { Avatar } from "../components/Persona";
 import { useAviso } from "../components/Aviso";
@@ -40,6 +42,15 @@ export default function Perfil() {
       )}
       {errorCarga && errorCarga.estado !== 404 && <ErrorCarga error={errorCarga} onReintentar={reintentar} />}
       {datos && (
+        <div className="perfil-banner editorial-card">
+          {datos.banner ? (
+            <Foto as="div" tono="neutral" className="perfil-banner__img slot--none" src={datos.banner} alt={`Banner de ${datos.nombre_visible}`} />
+          ) : (
+            <div className="perfil-banner__vacio editorial-microgrid" aria-hidden="true" />
+          )}
+        </div>
+      )}
+      {datos && (
         <div className="social-grid">
           <div className="detail-panel social-tarjeta">
             <div className="persona persona--grande">
@@ -65,7 +76,7 @@ export default function Perfil() {
           <div className="detail-panel social-tarjeta">
             <h2 className="detail-panel__title">Logros</h2>
             {datos.logros.length ? (
-              <ul className="logros">{datos.logros.map((l) => <li key={l.codigo} className="logro"><strong>{l.nombre}</strong><span>{l.condicion}</span></li>)}</ul>
+              <ul className="logros">{datos.logros.map((l, i) => <li key={l.codigo} className="logro logro--imagen"><ImagenLogro logro={l} tono={i % 2 ? "sage" : "warm"} mostrarNombre={false} className="slot--lg" /><span className="logro__texto"><strong>{l.nombre}</strong><span>{l.condicion}</span></span></li>)}</ul>
             ) : <p className="formulario__nota">Sin logros todavía.</p>}
             <h2 className="detail-panel__title">Actividad patrimonial</h2>
             {datos.actividad === null ? <p className="formulario__nota">La actividad de esta persona no es visible para ti.</p> : <Actividad eventos={datos.actividad} sinPersona />}

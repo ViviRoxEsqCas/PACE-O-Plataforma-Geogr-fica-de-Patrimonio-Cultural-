@@ -17,7 +17,19 @@ export function ItinerarioProvider({ children }) {
     [ids],
   );
 
-  const valor = useMemo(() => ({ ids, alternar: alternarBien, guardado: (id) => ids.includes(id) }), [ids, alternarBien]);
+  // Añade varios bienes de una vez (p. ej. una ruta generada) sin quitar los que ya estaban guardados.
+  const agregarVarios = useCallback(
+    (nuevos) => {
+      const siguientes = [...new Set([...ids, ...nuevos.filter((id) => Number.isInteger(id))])];
+      const agregados = siguientes.length - ids.length;
+      setIds(siguientes);
+      guardarItinerario(siguientes);
+      return { agregados, total: siguientes.length };
+    },
+    [ids],
+  );
+
+  const valor = useMemo(() => ({ ids, alternar: alternarBien, agregarVarios, guardado: (id) => ids.includes(id) }), [ids, alternarBien, agregarVarios]);
   return <Contexto.Provider value={valor}>{children}</Contexto.Provider>;
 }
 

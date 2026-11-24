@@ -1,6 +1,7 @@
 import { useCallback } from "react";
 import { Link } from "react-router-dom";
 import { Cargando, ErrorCarga } from "../components/Estados";
+import ImagenLogro from "../components/ImagenLogro";
 import MarcoSocial from "../components/MarcoSocial";
 import Persona from "../components/Persona";
 import { useSesion } from "../hooks/Sesion";
@@ -55,8 +56,8 @@ export default function Ranking() {
             <p className="formulario__nota"><strong>Desempate:</strong> {f.desempate.map((d, i) => `${i + 1}.º ${d}`).join(" · ")}.</p>
             <h3 className="social__subtitulo">Logros</h3>
             <ul className="logros">
-              {datos.logros.map((l) => (
-                <li key={l.codigo} className="logro"><strong>{l.nombre}</strong><span>{l.condicion}</span></li>
+              {datos.logros.map((l, i) => (
+                <li key={l.codigo} className="logro logro--imagen"><ImagenLogro logro={l} tono={i % 2 ? "sage" : "warm"} mostrarNombre={false} className="slot--lg" /><span className="logro__texto"><strong>{l.nombre}</strong><span>{l.condicion}</span></span></li>
               ))}
             </ul>
           </div>

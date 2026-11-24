@@ -5,6 +5,7 @@ import { useAviso } from "../components/Aviso";
 import { TotemVoxel } from "../components/Stickers";
 import { Cargando, ErrorCarga } from "../components/Estados";
 import { TarjetaBien } from "../components/ListaBienes";
+import RutaMedida from "../components/RutaMedida";
 import Marco from "../components/Marco";
 import { useCatalogo } from "../hooks/Catalogo";
 import { useItinerario } from "../hooks/Itinerario";
@@ -84,6 +85,8 @@ export default function Rutas() {
           <ErrorCarga error={error} onReintentar={reintentar} />
         </div>
       )}
+
+      {bienes.length > 0 && <RutaMedida bienes={bienes} />}
 
       {rutas.length > 0 && (
         <section className="routes-grid" aria-label="Rutas patrimoniales sugeridas">

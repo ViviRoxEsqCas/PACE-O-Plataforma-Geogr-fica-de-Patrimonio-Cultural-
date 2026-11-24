@@ -1,14 +1,43 @@
-import { Camera, Edit3, Lock, LogIn, LogOut, Smile, User, Users } from "lucide-react";
+import { Camera, Edit3, ImageOff, Lock, LogIn, LogOut, Smile, User, Users } from "lucide-react";
 import { useId, useRef, useState } from "react";
 import { Link } from "react-router-dom";
 import { Avatar } from "../components/Persona";
 import { ErrorCarga } from "../components/Estados";
 import Foto from "../components/Foto";
+import ImagenLogro from "../components/ImagenLogro";
+import SelectorArchivo from "../components/SelectorArchivo";
 import Marco from "../components/Marco";
 import { PatitoDoodle, TotemVoxel } from "../components/Stickers";
 import { useAviso } from "../components/Aviso";
 import { useSesion } from "../hooks/Sesion";
-import { actualizarMiPerfil, iniciarSesion, obtenerMiPerfil, registrarCuenta } from "../lib/api";
+import { actualizarMiPerfil, iniciarSesion, obtenerMiPerfil, registrarCuenta, urlRecurso } from "../lib/api";
+
+const TIPOS_IMAGEN = ["image/jpeg", "image/png", "image/webp"];
+const ACEPTAR_IMAGEN = TIPOS_IMAGEN.join(",");
+const FOTO_MAX = 2 * 1024 * 1024;
+const BANNER_MAX = 3 * 1024 * 1024;
+const BANNER_ANCHO_MIN = 600;
+
+/** Revisa en el navegador lo mismo que valida el servidor, para avisar antes de subir. Devuelve un mensaje o null. */
+async function revisarImagen(archivo, { maxBytes, etiqueta, anchoMinimo }) {
+  if (!TIPOS_IMAGEN.includes(archivo.type)) return "Use una imagen JPG, PNG o WEBP.";
+  if (archivo.size > maxBytes) return `${etiqueta} no puede superar los ${maxBytes / 1024 / 1024} MB.`;
+  if (!anchoMinimo) return null;
+  const url = URL.createObjectURL(archivo);
+  try {
+    const ancho = await new Promise((resolver, rechazar) => {
+      const img = new Image();
+      img.onload = () => resolver(img.naturalWidth);
+      img.onerror = () => rechazar(new Error("no es imagen"));
+      img.src = url;
+    });
+    return ancho < anchoMinimo ? `${etiqueta} debe tener al menos ${anchoMinimo} px de ancho.` : null;
+  } catch {
+    return "El archivo no es una imagen válida.";
+  } finally {
+    URL.revokeObjectURL(url);
+  }
+}
 
 const NIVELES = [
   ["publico", "Público"],
@@ -87,6 +116,79 @@ function Acceso() {
   );
 }
 
+/** Banner del perfil: subir, reemplazar y eliminar. La elección se previsualiza y solo se guarda al confirmar. */
+function EditorBanner({ perfil, referencia }) {
+  const { actualizar } = useSesion();
+  const aviso = useAviso();
+  const id = useId();
+  const [archivo, setArchivo] = useState(null);
+  const [aviso_error, setAvisoError] = useState(null);
+  const [ocupado, setOcupado] = useState(false);
+
+  const elegir = async (nuevo) => {
+    setAvisoError(null);
+    if (!nuevo) return setArchivo(null);
+    const problema = await revisarImagen(nuevo, { maxBytes: BANNER_MAX, etiqueta: "El banner", anchoMinimo: BANNER_ANCHO_MIN });
+    if (problema) return setAvisoError(problema);
+    return setArchivo(nuevo);
+  };
+  const guardar = async () => {
+    setOcupado(true);
+    setAvisoError(null);
+    try {
+      const cuerpo = new FormData();
+      cuerpo.append("banner", archivo);
+      await actualizarMiPerfil(cuerpo);
+      actualizar(await obtenerMiPerfil());
+      setArchivo(null);
+      aviso(perfil.banner ? "Banner actualizado." : "Banner guardado.");
+    } catch (e) {
+      setAvisoError(e?.message ?? "No se pudo guardar el banner.");
+    } finally {
+      setOcupado(false);
+    }
+  };
+  const quitar = async () => {
+    setOcupado(true);
+    setAvisoError(null);
+    try {
+      await actualizarMiPerfil({ banner: null });
+      actualizar(await obtenerMiPerfil());
+      setArchivo(null);
+      aviso("Banner eliminado.");
+    } catch (e) {
+      setAvisoError(e?.message ?? "No se pudo eliminar el banner.");
+    } finally {
+      setOcupado(false);
+    }
+  };
+
+  return (
+    <section className="account-edit account-banner editorial-card" ref={referencia} aria-label="Banner del perfil">
+      <span className="account-label">Portada personal</span>
+      <h3 className="account-edit__title">Banner del perfil</h3>
+      <p className="formulario__nota">Es la imagen ancha que se ve arriba en tu perfil y en tu perfil público. Mínimo {BANNER_ANCHO_MIN} px de ancho; se recorta en proporción 21:6.</p>
+      <label htmlFor={id} className="account-banner__label">Imagen del banner (JPG, PNG o WEBP, hasta 3 MB)</label>
+      <SelectorArchivo id={id} forma="banner" accept={ACEPTAR_IMAGEN} archivo={archivo} actual={perfil.banner ? urlRecurso(perfil.banner) : null} onChange={elegir} titulo={perfil.banner ? "Cambiar banner" : "Subir banner"} deshabilitado={ocupado} />
+      {aviso_error && <p className="estado estado--error" role="alert">{aviso_error}</p>}
+      <div className="formulario__acciones">
+        {archivo && (
+          <>
+            <button type="button" className="cta-pill-btn" onClick={guardar} disabled={ocupado}>{ocupado ? "Guardando…" : perfil.banner ? "Guardar cambio de banner" : "Guardar banner"}</button>
+            <button type="button" className="btn-text" onClick={() => elegir(null)} disabled={ocupado}>Descartar</button>
+          </>
+        )}
+        {!archivo && perfil.banner && (
+          <button type="button" className="btn-outline-pill" onClick={quitar} disabled={ocupado}>
+            <ImageOff aria-hidden="true" />
+            Eliminar banner
+          </button>
+        )}
+      </div>
+    </section>
+  );
+}
+
 function MiPerfil() {
   const { perfil, actualizar, salir } = useSesion();
   const aviso = useAviso();
@@ -132,22 +234,38 @@ function MiPerfil() {
   };
 
   const refFormulario = useRef(null);
-  const refFoto = useRef(null);
-  const irAlFormulario = (enfocar) => {
+  const refBanner = useRef(null);
+  const [errorFoto, setErrorFoto] = useState(null);
+  const irAlFormulario = (idCampo) => {
     refFormulario.current?.scrollIntoView({ behavior: "smooth", block: "start" });
-    window.setTimeout(() => enfocar?.current?.focus({ preventScroll: true }), 350);
+    if (idCampo) window.setTimeout(() => document.getElementById(idCampo)?.focus({ preventScroll: true }), 350);
   };
+  const irAlBanner = () => refBanner.current?.scrollIntoView({ behavior: "smooth", block: "start" });
   const logros = perfil.logros ?? [];
+  const pendientes = perfil.logros_pendientes ?? [];
+  const elegirFoto = async (nueva) => {
+    setErrorFoto(null);
+    if (!nueva) return setFoto(null);
+    const problema = await revisarImagen(nueva, { maxBytes: FOTO_MAX, etiqueta: "La fotografía" });
+    if (problema) return setErrorFoto(problema);
+    return setFoto(nueva);
+  };
 
   return (
     <>
       <section className="account-profile editorial-card" aria-label="Mi perfil">
         <div className="account-profile__cover">
-          <Foto as="div" tono="neutral" className="account-cover slot--none" etiqueta="Portada personal" pista="Espacio reservado para imagen de cabecera" />
-          <button type="button" className="account-pill account-pill--glass" onClick={() => irAlFormulario(refFoto)}>
-            <Camera aria-hidden="true" />
-            Cambiar fotografía
-          </button>
+          <Foto as="div" tono="neutral" className="account-cover slot--none" src={perfil.banner} alt="" etiqueta="Portada personal" pista="Sube tu banner desde «Banner del perfil»" />
+          <div className="account-pill-row">
+            <button type="button" className="account-pill account-pill--glass" onClick={irAlBanner}>
+              <Camera aria-hidden="true" />
+              {perfil.banner ? "Editar banner" : "Subir banner"}
+            </button>
+            <button type="button" className="account-pill account-pill--glass" onClick={() => irAlFormulario(`${id}-f`)}>
+              <Camera aria-hidden="true" />
+              Cambiar fotografía
+            </button>
+          </div>
         </div>
 
         <div className="account-profile__body">
@@ -207,20 +325,27 @@ function MiPerfil() {
           </div>
           <Link to="/ranking" className="account-board__link">Ver condiciones</Link>
         </div>
-        {logros.length ? (
-          <ul className="logros account-board__grid">
-            {logros.map((l, i) => (
-              <li key={l.codigo} className="logro editorial-card" title={l.condicion}>
-                <Foto as="div" tono={i % 2 === 0 ? "warm" : "sage"} className="account-logro__slot slot--lg" etiqueta={l.nombre} pista={l.condicion} />
-                <div className="account-logro__pie"><span>/ {String(i + 1).padStart(2, "0")}</span><span>logro</span></div>
-              </li>
-            ))}
-          </ul>
-        ) : (
-          <p className="formulario__nota">Aún no tienes logros. Se obtienen con acciones reales: <Link to="/ranking">ver condiciones</Link>.</p>
-        )}
+        {logros.length === 0 && <p className="formulario__nota">Aún no tienes logros. Se obtienen con acciones reales: <Link to="/ranking">ver condiciones</Link>.</p>}
+        <ul className="logros account-board__grid">
+          {logros.map((l, i) => (
+            <li key={l.codigo} className="logro editorial-card" title={l.condicion}>
+              <ImagenLogro logro={l} tono={i % 2 === 0 ? "warm" : "sage"} className="account-logro__slot slot--lg" mostrarNombre={false} />
+              <div className="account-logro__texto"><strong>{l.nombre}</strong><span>{l.condicion}</span></div>
+              <div className="account-logro__pie"><span>/ {String(i + 1).padStart(2, "0")}</span><span>obtenido</span></div>
+            </li>
+          ))}
+          {pendientes.map((l, i) => (
+            <li key={l.codigo} className="logro logro--pendiente editorial-card" title={l.condicion}>
+              <ImagenLogro logro={l} tono="neutral" bloqueado className="account-logro__slot slot--lg" mostrarNombre={false} />
+              <div className="account-logro__texto"><strong>{l.nombre}</strong><span>{l.condicion}</span></div>
+              <div className="account-logro__pie"><span>/ {String(logros.length + i + 1).padStart(2, "0")}</span><span>por lograr</span></div>
+            </li>
+          ))}
+        </ul>
         <div className="account-board__duck"><PatitoDoodle /></div>
       </section>
+
+      <EditorBanner perfil={perfil} referencia={refBanner} />
 
       <section className="account-edit editorial-card" ref={refFormulario} aria-label="Editar perfil y privacidad">
         <span className="account-label">Estudio personal</span>
@@ -237,7 +362,9 @@ function MiPerfil() {
           </div>
           <div className="campo">
             <label htmlFor={`${id}-f`}>Fotografía (JPG, PNG o WEBP, hasta 2 MB)</label>
-            <input id={`${id}-f`} ref={refFoto} type="file" accept="image/jpeg,image/png,image/webp" onChange={(e) => setFoto(e.target.files?.[0] ?? null)} />
+            <SelectorArchivo id={`${id}-f`} forma="circulo" accept={ACEPTAR_IMAGEN} archivo={foto} actual={perfil.foto ? urlRecurso(perfil.foto) : null} onChange={elegirFoto} titulo={perfil.foto ? "Cambiar fotografía" : "Elegir fotografía"} deshabilitado={enviando} />
+            {errorFoto && <p className="estado estado--error" role="alert">{errorFoto}</p>}
+            {foto && <span className="formulario__nota">Se guardará al pulsar «Guardar cambios».</span>}
             {perfil.foto && <button type="button" className="btn-text" onClick={quitarFoto}>Quitar mi fotografía</button>}
           </div>
           <div className="campo">
