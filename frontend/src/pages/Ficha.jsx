@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { ArrowLeft, ChevronLeft, ChevronRight, Compass, Plus, Check } from "lucide-react";
+import { ArrowLeft, ChevronLeft, ChevronRight, Compass, Navigation, Plus, Check } from "lucide-react";
 import { Link, useLocation, useNavigate, useParams } from "react-router-dom";
 import { Cargando, ErrorCarga } from "../components/Estados";
 import Foto from "../components/Foto";
@@ -66,6 +66,13 @@ function Imagenes({ imagenes, nombre }) {
       )}
     </div>
   );
+}
+
+/** Enlace de «Cómo llegar»: indicaciones de Google Maps hacia el bien (desde tu posición si ya la compartiste). */
+function enlaceComoLlegar(bien, posicion) {
+  const destino = `${bien.latitud},${bien.longitud}`;
+  const origen = posicion ? `&origin=${posicion.lat},${posicion.lon}` : "";
+  return `https://www.google.com/maps/dir/?api=1&destination=${destino}${origen}`;
 }
 
 export default function Ficha() {
@@ -198,6 +205,34 @@ export default function Ficha() {
                 </div>
               </div>
 
+              <div className="detail-location-card" aria-label="Ubicación y cómo llegar">
+                <div className="detail-location-card__head">
+                  <p className="spec-box__label">Ubicación geográfica</p>
+                  {bien.tiene_ubicacion && posicion && <span className="detail-location-card__dist">A {formatearDistancia(distanciaA(bien, posicion))} de ti</span>}
+                </div>
+                {bien.tiene_ubicacion ? (
+                  <>
+                    <div className="ficha__mapa">
+                      <MapaBienes ficha className="detail-mini-map" bienes={[bien]} posicion={posicion} etiqueta={`Mapa con la ubicación de ${bien.nombre}`} />
+                    </div>
+                    <div className="detail-location-card__actions">
+                      <a className="cta-pill-btn" href={enlaceComoLlegar(bien, posicion)} target="_blank" rel="noopener noreferrer">
+                        <Navigation aria-hidden="true" />
+                        Cómo llegar
+                      </a>
+                      {!posicion && (
+                        <button type="button" className="btn-outline-pill" onClick={solicitar} disabled={fase === "pidiendo"}>
+                          {fase === "pidiendo" ? "Obteniendo ubicación…" : "Ver distancia"}
+                        </button>
+                      )}
+                    </div>
+                    {fase === "error" && <p className="detail-location-card__nota" role="status">No se pudo obtener tu ubicación; el resto de la ficha sigue disponible.</p>}
+                  </>
+                ) : (
+                  <p className="detail-text">Esta manifestación no tiene una ubicación puntual, por eso no aparece en el mapa.</p>
+                )}
+              </div>
+
               <div className="detail-cta-group">
                 <button type="button" className={`cta-pill-btn${guardado ? " is-saved" : ""}`} aria-pressed={guardado} onClick={alternarRuta}>
                   {guardado ? <Check aria-hidden="true" /> : <Plus aria-hidden="true" />}
@@ -258,19 +293,6 @@ export default function Ficha() {
                 <>
                   <p className="detail-text detail-text--meta">
                     Lat {bien.latitud.toFixed(4)} · Lon {bien.longitud.toFixed(4)}
-                  </p>
-                  <div className="ficha__mapa">
-                    <MapaBienes ficha className="detail-mini-map" bienes={[bien]} posicion={posicion} etiqueta={`Mapa con la ubicación de ${bien.nombre}`} />
-                  </div>
-                  <p className="detail-distance">
-                    {posicion ? (
-                      <strong>{formatearDistancia(distanciaA(bien, posicion))}</strong>
-                    ) : (
-                      <button type="button" className="btn-outline-pill" onClick={solicitar} disabled={fase === "pidiendo"}>
-                        {fase === "pidiendo" ? "Obteniendo ubicación…" : "Ver distancia"}
-                      </button>
-                    )}
-                    {fase === "error" && <span role="status">No se pudo obtener tu ubicación; el resto de la ficha sigue disponible.</span>}
                   </p>
                 </>
               ) : (

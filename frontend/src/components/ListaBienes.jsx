@@ -6,8 +6,6 @@ import { distanciaA, formatearDistancia } from "../lib/distancia";
 import Foto from "./Foto";
 
 const TONOS = ["warm", "sage", "neutral"];
-// Proporciones alternas de la galería editorial (vertical · cuadrada · apaisada), como las fichas de la referencia.
-const PROPORCIONES = ["3 / 4", "1 / 1", "4 / 3", "4 / 5", "1 / 1", "3 / 4"];
 
 /**
  * Tarjeta patrimonial del diseño. Toda la tarjeta abre la ficha; el título es el enlace accesible.
@@ -34,7 +32,6 @@ export function TarjetaBien({ bien, destacada = false, enlace = "ver ficha →",
       <Foto
         as="div"
         className="heritage-card__media slot--lg"
-        style={conIndice ? { aspectRatio: PROPORCIONES[indice % PROPORCIONES.length] } : undefined}
         tono={TONOS[(indice ?? 0) % TONOS.length]}
         src={bien.portada?.url}
         alt={bien.portada?.texto_alternativo || bien.nombre}

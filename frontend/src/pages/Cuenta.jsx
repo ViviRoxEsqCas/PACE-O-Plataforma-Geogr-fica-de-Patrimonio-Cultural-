@@ -1,8 +1,11 @@
-import { useId, useState } from "react";
+import { Camera, Edit3, Lock, LogIn, LogOut, Smile, User, Users } from "lucide-react";
+import { useId, useRef, useState } from "react";
 import { Link } from "react-router-dom";
 import { Avatar } from "../components/Persona";
 import { ErrorCarga } from "../components/Estados";
-import MarcoSocial from "../components/MarcoSocial";
+import Foto from "../components/Foto";
+import Marco from "../components/Marco";
+import { PatitoDoodle, TotemVoxel } from "../components/Stickers";
 import { useAviso } from "../components/Aviso";
 import { useSesion } from "../hooks/Sesion";
 import { actualizarMiPerfil, iniciarSesion, obtenerMiPerfil, registrarCuenta } from "../lib/api";
@@ -39,28 +42,40 @@ function Acceso() {
   };
 
   return (
-    <div className="detail-panel social-tarjeta">
-      <h2 className="detail-panel__title">{registro ? "Crear cuenta de visitante" : "Ingresar"}</h2>
-      <form className="formulario" onSubmit={enviar} noValidate>
+    <div className="account-login editorial-card animate-scale-in">
+      <span className="account-label">Acceso Editorial</span>
+      <h2 className="account-login__title">{registro ? "Crear cuenta de visitante" : "Bienvenido de vuelta"}</h2>
+      <p className="account-login__texto">{registro ? "Sin correo: solo un usuario y una contraseña." : "Ingresa para valorar, comentar y sumar logros."}</p>
+      <form className="formulario account-form" onSubmit={enviar} noValidate>
         <div className="campo">
           <label htmlFor={`${id}-u`}>Usuario</label>
-          <input id={`${id}-u`} type="text" autoComplete="username" value={datos.username} onChange={poner("username")} maxLength={30} required />
+          <span className="account-input">
+            <User aria-hidden="true" />
+            <input id={`${id}-u`} type="text" autoComplete="username" value={datos.username} onChange={poner("username")} maxLength={30} required />
+          </span>
           {registro && <span className="formulario__nota">3 a 30 letras, números o guion bajo.</span>}
         </div>
         {registro && (
           <div className="campo">
             <label htmlFor={`${id}-n`}>Nombre visible (opcional)</label>
-            <input id={`${id}-n`} type="text" value={datos.nombre_visible} onChange={poner("nombre_visible")} maxLength={40} />
+            <span className="account-input">
+              <Smile aria-hidden="true" />
+              <input id={`${id}-n`} type="text" value={datos.nombre_visible} onChange={poner("nombre_visible")} maxLength={40} />
+            </span>
           </div>
         )}
         <div className="campo">
           <label htmlFor={`${id}-p`}>Contraseña</label>
-          <input id={`${id}-p`} type="password" autoComplete={registro ? "new-password" : "current-password"} value={datos.password} onChange={poner("password")} required />
+          <span className="account-input">
+            <Lock aria-hidden="true" />
+            <input id={`${id}-p`} type="password" autoComplete={registro ? "new-password" : "current-password"} value={datos.password} onChange={poner("password")} required />
+          </span>
           {registro && <span className="formulario__nota">Mínimo 8 caracteres, no demasiado común ni solo números. No pedimos correo.</span>}
         </div>
         {error && <ErrorCarga error={error} />}
-        <div className="formulario__acciones">
+        <div className="formulario__acciones account-login__acciones">
           <button type="submit" className="cta-pill-btn" disabled={enviando || !datos.username || !datos.password}>
+            <LogIn aria-hidden="true" />
             {enviando ? "Enviando…" : registro ? "Crear cuenta" : "Ingresar"}
           </button>
           <button type="button" className="btn-text" onClick={() => { setModo(registro ? "ingresar" : "registrar"); setError(null); }}>
@@ -116,43 +131,101 @@ function MiPerfil() {
     }
   };
 
+  const refFormulario = useRef(null);
+  const refFoto = useRef(null);
+  const irAlFormulario = (enfocar) => {
+    refFormulario.current?.scrollIntoView({ behavior: "smooth", block: "start" });
+    window.setTimeout(() => enfocar?.current?.focus({ preventScroll: true }), 350);
+  };
+  const logros = perfil.logros ?? [];
+
   return (
-    <div className="social-grid">
-      <div className="detail-panel social-tarjeta">
-        <h2 className="detail-panel__title">Mi perfil</h2>
-        <div className="persona persona--grande">
-          <Avatar persona={perfil} tamano={64} />
-          <span className="persona__texto">
-            <span className="persona__nombre">{perfil.nombre_visible}</span>
-            <span className="persona__usuario">@{perfil.username}</span>
-          </span>
+    <>
+      <section className="account-profile editorial-card" aria-label="Mi perfil">
+        <div className="account-profile__cover">
+          <Foto as="div" tono="neutral" className="account-cover slot--none" etiqueta="Portada personal" pista="Espacio reservado para imagen de cabecera" />
+          <button type="button" className="account-pill account-pill--glass" onClick={() => irAlFormulario(refFoto)}>
+            <Camera aria-hidden="true" />
+            Cambiar fotografía
+          </button>
         </div>
-        <ul className="social__cifras" aria-label="Mi actividad">
-          <li><strong>{perfil.puntos ?? 0}</strong> puntos</li>
-          <li><strong>{perfil.visitas ?? 0}</strong> visitas declaradas</li>
-          <li><strong>{perfil.valoraciones ?? 0}</strong> valoraciones</li>
-          <li><strong>{perfil.amigos ?? 0}</strong> amistades</li>
-        </ul>
-        <h3 className="social__subtitulo">Mis logros</h3>
-        {perfil.logros?.length ? (
-          <ul className="logros">
-            {perfil.logros.map((l) => (
-              <li key={l.codigo} className="logro" title={l.condicion}><strong>{l.nombre}</strong><span>{l.condicion}</span></li>
+
+        <div className="account-profile__body">
+          <div className="account-profile__id">
+            <div className="account-profile__who">
+              <div className="account-avatar">
+                <Avatar persona={perfil} tamano={112} />
+              </div>
+              <div className="account-profile__name">
+                <div className="account-profile__name-row">
+                  <span className="account-dot" aria-hidden="true" />
+                  <h2>{perfil.nombre_visible}</h2>
+                </div>
+                <p>@{perfil.username} · Visitante · La Paz</p>
+              </div>
+            </div>
+            <div className="account-profile__actions">
+              <button type="button" className="cta-pill-btn" onClick={() => irAlFormulario()}>
+                <Edit3 aria-hidden="true" />
+                Editar información
+              </button>
+              <Link to="/amistades" className="btn-outline-pill">
+                <Users aria-hidden="true" />
+                Mis amistades
+              </Link>
+              <Link to={`/perfiles/${perfil.username}`} className="btn-outline-pill">Ver mi perfil público</Link>
+            </div>
+          </div>
+
+          <div className="account-profile__grid">
+            <div className="account-bio">
+              <span className="account-label">Nota biográfica</span>
+              <p>{perfil.biografia?.trim() || "Aún no has escrito tu nota biográfica. Cuéntanos qué patrimonio te interesa."}</p>
+              {logros.length > 0 && (
+                <div className="account-chips">
+                  {logros.map((l) => <span key={l.codigo} className="account-chip" title={l.condicion}>{l.nombre}</span>)}
+                </div>
+              )}
+            </div>
+            <div className="account-metrics-wrap">
+              <ul className="account-metrics" aria-label="Mi actividad">
+                <li><strong>{perfil.puntos ?? 0}</strong><span>puntos</span></li>
+                <li><strong>{perfil.visitas ?? 0}</strong><span>visitas declaradas</span></li>
+                <li><strong>{perfil.valoraciones ?? 0}</strong><span>valoraciones</span></li>
+              </ul>
+              <TotemVoxel className="account-totem" />
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section className="account-board" aria-label="Mis logros">
+        <div className="account-board__head">
+          <div>
+            <span className="account-label">Archivo privado</span>
+            <h3>Mis logros</h3>
+          </div>
+          <Link to="/ranking" className="account-board__link">Ver condiciones</Link>
+        </div>
+        {logros.length ? (
+          <ul className="logros account-board__grid">
+            {logros.map((l, i) => (
+              <li key={l.codigo} className="logro editorial-card" title={l.condicion}>
+                <Foto as="div" tono={i % 2 === 0 ? "warm" : "sage"} className="account-logro__slot slot--lg" etiqueta={l.nombre} pista={l.condicion} />
+                <div className="account-logro__pie"><span>/ {String(i + 1).padStart(2, "0")}</span><span>logro</span></div>
+              </li>
             ))}
           </ul>
         ) : (
           <p className="formulario__nota">Aún no tienes logros. Se obtienen con acciones reales: <Link to="/ranking">ver condiciones</Link>.</p>
         )}
-        <div className="formulario__acciones">
-          <Link to="/amistades" className="btn-outline-pill">Mis amistades</Link>
-          <Link to={`/perfiles/${perfil.username}`} className="btn-outline-pill">Ver mi perfil público</Link>
-          <button type="button" className="btn-text" onClick={salir}>Cerrar sesión</button>
-        </div>
-      </div>
+        <div className="account-board__duck"><PatitoDoodle /></div>
+      </section>
 
-      <div className="detail-panel social-tarjeta">
-        <h2 className="detail-panel__title">Editar perfil y privacidad</h2>
-        <form className="formulario" onSubmit={guardar} noValidate>
+      <section className="account-edit editorial-card" ref={refFormulario} aria-label="Editar perfil y privacidad">
+        <span className="account-label">Estudio personal</span>
+        <h3 className="account-edit__title">Editar perfil y privacidad</h3>
+        <form className="formulario account-form" onSubmit={guardar} noValidate>
           <div className="campo">
             <label htmlFor={`${id}-n`}>Nombre visible</label>
             <input id={`${id}-n`} type="text" maxLength={40} value={form.nombre_visible} onChange={poner("nombre_visible")} />
@@ -164,7 +237,7 @@ function MiPerfil() {
           </div>
           <div className="campo">
             <label htmlFor={`${id}-f`}>Fotografía (JPG, PNG o WEBP, hasta 2 MB)</label>
-            <input id={`${id}-f`} type="file" accept="image/jpeg,image/png,image/webp" onChange={(e) => setFoto(e.target.files?.[0] ?? null)} />
+            <input id={`${id}-f`} ref={refFoto} type="file" accept="image/jpeg,image/png,image/webp" onChange={(e) => setFoto(e.target.files?.[0] ?? null)} />
             {perfil.foto && <button type="button" className="btn-text" onClick={quitarFoto}>Quitar mi fotografía</button>}
           </div>
           <div className="campo">
@@ -183,19 +256,35 @@ function MiPerfil() {
           {error && <ErrorCarga error={error} />}
           <button type="submit" className="cta-pill-btn" disabled={enviando}>{enviando ? "Guardando…" : "Guardar cambios"}</button>
         </form>
-      </div>
-    </div>
+      </section>
+    </>
   );
 }
 
 export default function Cuenta() {
-  const { perfil, listo } = useSesion();
+  const { perfil, listo, salir } = useSesion();
   return (
-    <MarcoSocial
-      activa="cuenta" kicker="TU ESPACIO · COMUNIDAD PACEÑO" titulo={perfil ? "Mi cuenta" : "Ingresa a Paceño"}
-      descripcion="Con una cuenta puedes valorar y comentar bienes, marcar los que visitaste, sumar logros y conectar con otras personas. Explorar el catálogo no requiere cuenta."
+    <Marco
+      activa="cuenta"
+      insignia="ESTUDIO PERSONAL · LA PAZ"
+      notaMenu="Tu perfil, logros y privacidad"
+      cta={{ descripcion: "Descubre el patrimonio del eje central y comparte tu experiencia.", texto: "+ Abrir mapa", a: "/explorar" }}
     >
-      {!listo ? <p className="estado estado--cargando" role="status">Cargando…</p> : perfil ? <MiPerfil /> : <Acceso />}
-    </MarcoSocial>
+      <div className="account-page animate-fade-in">
+        <header className="account-head">
+          <div>
+            <span className="account-kicker">estudio personal</span>
+            <h1>{perfil ? "Mi cuenta" : "Ingresa a Paceño"}</h1>
+          </div>
+          {perfil && (
+            <button type="button" className="btn-outline-pill" onClick={salir}>
+              <LogOut aria-hidden="true" />
+              Cerrar sesión
+            </button>
+          )}
+        </header>
+        {!listo ? <p className="estado estado--cargando" role="status">Cargando…</p> : perfil ? <MiPerfil /> : <Acceso />}
+      </div>
+    </Marco>
   );
 }
