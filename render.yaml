@@ -1,44 +1,39 @@
-# Blueprint de Render para PACEÑO: un servicio web (API + PWA), PostgreSQL y un disco persistente para las fotos.
-# Uso: Render → New → Blueprint → elegir este repositorio.
-# Los planes pagos son necesarios para que los datos y las fotos no se pierdan (el plan gratuito duerme, no admite
-# disco persistente y su base caduca a los 30 días). Verifique los nombres de plan vigentes en render.com/pricing.
-databases:
-  - name: paceno-db
-    databaseName: paceno
-    user: paceno
-    plan: 0.1c-256mb
-
+# Despliegue SIN COSTO de PACEÑO: un servicio web gratuito de Render (API + PWA).
+# El plan gratuito de Render no incluye base de datos duradera ni disco, así que se usan servicios externos gratuitos:
+#   · PostgreSQL → Neon (DATABASE_URL)        · Fotos y banners → Supabase Storage u otro S3 (S3_*)
+# El servicio gratuito se duerme tras 15 min sin visitas y tarda cerca de 1 min en despertar.
 services:
   - type: web
     name: paceno
     runtime: docker
     dockerfilePath: ./Dockerfile
     dockerContext: .
-    plan: 0.5c-512mb
+    plan: free
     healthCheckPath: /api/categorias/
-    disk:
-      name: paceno-media
-      mountPath: /data
-      sizeGB: 1
     envVars:
       - key: DJANGO_DEBUG
         value: "False"
       - key: DJANGO_SECRET_KEY
         generateValue: true
-      - key: DATABASE_URL
-        fromDatabase:
-          name: paceno-db
-          property: connectionString
-      - key: MEDIA_ROOT
-        value: /data/media
-      - key: SERVIR_MEDIA
-        value: "True"
       # Render termina HTTPS y reescribe X-Forwarded-Proto; hay exactamente 1 proxy delante de Django.
       - key: USAR_X_FORWARDED_PROTO
         value: "True"
       - key: NUM_PROXIES
         value: "1"
-      # Administrador del panel /admin/ (se pide al crear el Blueprint; luego puede cambiarse en el panel).
+      - key: DATABASE_URL
+        sync: false
+      - key: S3_BUCKET
+        sync: false
+      - key: S3_ENDPOINT_URL
+        sync: false
+      - key: S3_REGION
+        sync: false
+      - key: S3_ACCESS_KEY_ID
+        sync: false
+      - key: S3_SECRET_ACCESS_KEY
+        sync: false
+      - key: S3_PUBLIC_DOMAIN
+        sync: false
       - key: DJANGO_SUPERUSER_USERNAME
         sync: false
       - key: DJANGO_SUPERUSER_PASSWORD

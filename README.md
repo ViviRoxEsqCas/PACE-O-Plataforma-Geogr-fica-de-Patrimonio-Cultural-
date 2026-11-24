@@ -201,13 +201,12 @@ Desarrollo de Software e Innovación Tecnológica · La Paz, Bolivia
 
 </div>
 
-## Despliegue en Render
+## Despliegue en Render (sin costo)
 
-El `Dockerfile` compila la PWA y la entrega junto con la API Django (gunicorn + WhiteNoise) en **un solo servicio**, sin CORS ni `VITE_API_URL`. `render.yaml` crea el servicio web, la base PostgreSQL y un disco persistente (`/data/media`) para fotos y banners.
+El `Dockerfile` compila la PWA y la entrega junto con la API Django (gunicorn + WhiteNoise) en **un solo servicio**, sin CORS ni `VITE_API_URL`. Con el plan gratuito de Render se combinan tres servicios gratuitos:
 
-1. Suba el repositorio a GitHub y en Render elija **New → Blueprint** con este repositorio.
-2. Cuando lo pida, escriba usuario, contraseña y correo del administrador del panel (`DJANGO_SUPERUSER_*`).
-3. Al terminar el primer despliegue, el sitio queda en `https://<servicio>.onrender.com` y el panel en `/admin/`.
+1. **PostgreSQL en Neon** (neon.tech): cree un proyecto y copie su cadena de conexión → variable `DATABASE_URL` (debe terminar en `?sslmode=require`).
+2. **Fotos y banners en Supabase Storage** (o cualquier almacenamiento compatible con S3): cree un bucket público y genere las claves S3 → variables `S3_BUCKET`, `S3_ENDPOINT_URL`, `S3_REGION`, `S3_ACCESS_KEY_ID`, `S3_SECRET_ACCESS_KEY` y `S3_PUBLIC_DOMAIN` (dirección pública de lectura sin `https://`, p. ej. `<proyecto>.supabase.co/storage/v1/object/public/<bucket>`).
+3. **Render → New → Web Service** → repositorio → *Runtime: Docker* → *Instance type: Free*, y en *Environment* las variables anteriores más `DJANGO_DEBUG=False`, `DJANGO_SECRET_KEY` (una clave larga y propia), `USAR_X_FORWARDED_PROTO=True`, `NUM_PROXIES=1` y `DJANGO_SUPERUSER_USERNAME/PASSWORD/EMAIL` (administrador del panel `/admin/`).
 
-Cada arranque ejecuta `migrate` y carga el catálogo, las actividades y las imágenes iniciales sin pisar lo que el Editor ya corrigió (`backend/entrypoint.sh`). Los planes gratuitos de Render no sirven para producción: el servicio duerme, no admite disco persistente y la base caduca a los 30 días. Si cambian los nombres de plan, ajústelos en `render.yaml`.
-
+Cada arranque ejecuta `migrate` y carga el catálogo, las actividades y las imágenes iniciales sin pisar lo que el Editor ya corrigió (`backend/entrypoint.sh`). El servicio gratuito se duerme tras 15 min sin visitas y tarda cerca de 1 min en despertar; sin las variables `S3_*` las fotos subidas se pierden al dormirse. `render.yaml` describe este mismo servicio por si se usa un Blueprint.

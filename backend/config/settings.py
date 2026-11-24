@@ -96,13 +96,17 @@ DATABASES = {
 # Plataformas como Render entregan la base como una sola URL (DATABASE_URL); si existe, tiene prioridad.
 _URL_BD = os.getenv("DATABASE_URL", "").strip()
 if _URL_BD:
-    from urllib.parse import unquote, urlparse
+    from urllib.parse import parse_qs, unquote, urlparse
 
     _bd = urlparse(_URL_BD)
     DATABASES["default"].update(
         NAME=unquote(_bd.path.lstrip("/")), USER=unquote(_bd.username or ""), PASSWORD=unquote(_bd.password or ""),
         HOST=_bd.hostname or "localhost", PORT=str(_bd.port or 5432),
     )
+    # Neon, Supabase y similares exigen SSL: llega como «?sslmode=require» al final de la URL.
+    _sslmode = parse_qs(_bd.query).get("sslmode", [""])[0]
+    if _sslmode:
+        DATABASES["default"]["OPTIONS"] = {"sslmode": _sslmode}
 
 AUTH_PASSWORD_VALIDATORS = [
     {"NAME": "django.contrib.auth.password_validation.UserAttributeSimilarityValidator"},
@@ -135,6 +139,24 @@ STORAGES = {
     "default": {"BACKEND": "django.core.files.storage.FileSystemStorage"},
     "staticfiles": {"BACKEND": "whitenoise.storage.CompressedStaticFilesStorage"},
 }
+# Fotos, banners e imágenes del catálogo en un almacenamiento externo compatible con S3 (p. ej. Supabase Storage,
+# Cloudflare R2). Es la opción para hosting gratuito, donde el disco del servicio se borra al dormirse.
+# Se activa al definir S3_BUCKET; la API entrega entonces URL absolutas que el frontend respeta sin cambios.
+if os.getenv("S3_BUCKET", "").strip():
+    AWS_STORAGE_BUCKET_NAME = os.environ["S3_BUCKET"].strip()
+    AWS_S3_ENDPOINT_URL = os.getenv("S3_ENDPOINT_URL", "").strip() or None
+    AWS_S3_REGION_NAME = os.getenv("S3_REGION", "us-east-1").strip()
+    AWS_ACCESS_KEY_ID = os.getenv("S3_ACCESS_KEY_ID", "").strip()
+    AWS_SECRET_ACCESS_KEY = os.getenv("S3_SECRET_ACCESS_KEY", "").strip()
+    # Dirección pública de lectura (sin https:// ni barra final), p. ej.
+    # «<proyecto>.supabase.co/storage/v1/object/public/<bucket>».
+    AWS_S3_CUSTOM_DOMAIN = os.getenv("S3_PUBLIC_DOMAIN", "").strip() or None
+    AWS_QUERYSTRING_AUTH = False
+    AWS_DEFAULT_ACL = None
+    AWS_S3_FILE_OVERWRITE = False
+    AWS_S3_ADDRESSING_STYLE = "path"
+    AWS_S3_SIGNATURE_VERSION = "s3v4"
+    STORAGES["default"] = {"BACKEND": "storages.backends.s3.S3Storage"}
 
 DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
 

@@ -1,0 +1,160 @@
+diff --git a/README.md b/README.md
+index 7c00a6c..da4cb5a 100644
+--- a/README.md
++++ b/README.md
+@@ -201,13 +201,12 @@ Desarrollo de Software e Innovación Tecnológica · La Paz, Bolivia
+ 
+ </div>
+ 
+-## Despliegue en Render
++## Despliegue en Render (sin costo)
+ 
+-El `Dockerfile` compila la PWA y la entrega junto con la API Django (gunicorn + WhiteNoise) en **un solo servicio**, sin CORS ni `VITE_API_URL`. `render.yaml` crea el servicio web, la base PostgreSQL y un disco persistente (`/data/media`) para fotos y banners.
++El `Dockerfile` compila la PWA y la entrega junto con la API Django (gunicorn + WhiteNoise) en **un solo servicio**, sin CORS ni `VITE_API_URL`. Con el plan gratuito de Render se combinan tres servicios gratuitos:
+ 
+-1. Suba el repositorio a GitHub y en Render elija **New → Blueprint** con este repositorio.
+-2. Cuando lo pida, escriba usuario, contraseña y correo del administrador del panel (`DJANGO_SUPERUSER_*`).
+-3. Al terminar el primer despliegue, el sitio queda en `https://<servicio>.onrender.com` y el panel en `/admin/`.
+-
+-Cada arranque ejecuta `migrate` y carga el catálogo, las actividades y las imágenes iniciales sin pisar lo que el Editor ya corrigió (`backend/entrypoint.sh`). Los planes gratuitos de Render no sirven para producción: el servicio duerme, no admite disco persistente y la base caduca a los 30 días. Si cambian los nombres de plan, ajústelos en `render.yaml`.
++1. **PostgreSQL en Neon** (neon.tech): cree un proyecto y copie su cadena de conexión → variable `DATABASE_URL` (debe terminar en `?sslmode=require`).
++2. **Fotos y banners en Supabase Storage** (o cualquier almacenamiento compatible con S3): cree un bucket público y genere las claves S3 → variables `S3_BUCKET`, `S3_ENDPOINT_URL`, `S3_REGION`, `S3_ACCESS_KEY_ID`, `S3_SECRET_ACCESS_KEY` y `S3_PUBLIC_DOMAIN` (dirección pública de lectura sin `https://`, p. ej. `<proyecto>.supabase.co/storage/v1/object/public/<bucket>`).
++3. **Render → New → Web Service** → repositorio → *Runtime: Docker* → *Instance type: Free*, y en *Environment* las variables anteriores más `DJANGO_DEBUG=False`, `DJANGO_SECRET_KEY` (una clave larga y propia), `USAR_X_FORWARDED_PROTO=True`, `NUM_PROXIES=1` y `DJANGO_SUPERUSER_USERNAME/PASSWORD/EMAIL` (administrador del panel `/admin/`).
+ 
++Cada arranque ejecuta `migrate` y carga el catálogo, las actividades y las imágenes iniciales sin pisar lo que el Editor ya corrigió (`backend/entrypoint.sh`). El servicio gratuito se duerme tras 15 min sin visitas y tarda cerca de 1 min en despertar; sin las variables `S3_*` las fotos subidas se pierden al dormirse. `render.yaml` describe este mismo servicio por si se usa un Blueprint.
+diff --git a/backend/.env.example b/backend/.env.example
+index ae0a0a2..bdeb1a5 100644
+--- a/backend/.env.example
++++ b/backend/.env.example
+@@ -37,3 +37,6 @@ USAR_X_FORWARDED_PROTO=False
+ # SERVIR_MEDIA=True                                         (Django sirve /media/ cuando DEBUG=False)
+ # RENDER_EXTERNAL_HOSTNAME lo define Render solo; se agrega a ALLOWED_HOSTS y CSRF_TRUSTED_ORIGINS.
+ # DJANGO_SUPERUSER_USERNAME / DJANGO_SUPERUSER_PASSWORD / DJANGO_SUPERUSER_EMAIL   (crea el administrador al arrancar)
++# Almacenamiento externo S3 (hosting gratuito; si S3_BUCKET está vacío se usa MEDIA_ROOT):
++# S3_BUCKET=  S3_ENDPOINT_URL=  S3_REGION=  S3_ACCESS_KEY_ID=  S3_SECRET_ACCESS_KEY=
++# S3_PUBLIC_DOMAIN=<proyecto>.supabase.co/storage/v1/object/public/<bucket>
+diff --git a/backend/config/settings.py b/backend/config/settings.py
+index 060037c..646b07d 100644
+--- a/backend/config/settings.py
++++ b/backend/config/settings.py
+@@ -96,13 +96,17 @@ DATABASES = {
+ # Plataformas como Render entregan la base como una sola URL (DATABASE_URL); si existe, tiene prioridad.
+ _URL_BD = os.getenv("DATABASE_URL", "").strip()
+ if _URL_BD:
+-    from urllib.parse import unquote, urlparse
++    from urllib.parse import parse_qs, unquote, urlparse
+ 
+     _bd = urlparse(_URL_BD)
+     DATABASES["default"].update(
+         NAME=unquote(_bd.path.lstrip("/")), USER=unquote(_bd.username or ""), PASSWORD=unquote(_bd.password or ""),
+         HOST=_bd.hostname or "localhost", PORT=str(_bd.port or 5432),
+     )
++    # Neon, Supabase y similares exigen SSL: llega como «?sslmode=require» al final de la URL.
++    _sslmode = parse_qs(_bd.query).get("sslmode", [""])[0]
++    if _sslmode:
++        DATABASES["default"]["OPTIONS"] = {"sslmode": _sslmode}
+ 
+ AUTH_PASSWORD_VALIDATORS = [
+     {"NAME": "django.contrib.auth.password_validation.UserAttributeSimilarityValidator"},
+@@ -135,6 +139,24 @@ STORAGES = {
+     "default": {"BACKEND": "django.core.files.storage.FileSystemStorage"},
+     "staticfiles": {"BACKEND": "whitenoise.storage.CompressedStaticFilesStorage"},
+ }
++# Fotos, banners e imágenes del catálogo en un almacenamiento externo compatible con S3 (p. ej. Supabase Storage,
++# Cloudflare R2). Es la opción para hosting gratuito, donde el disco del servicio se borra al dormirse.
++# Se activa al definir S3_BUCKET; la API entrega entonces URL absolutas que el frontend respeta sin cambios.
++if os.getenv("S3_BUCKET", "").strip():
++    AWS_STORAGE_BUCKET_NAME = os.environ["S3_BUCKET"].strip()
++    AWS_S3_ENDPOINT_URL = os.getenv("S3_ENDPOINT_URL", "").strip() or None
++    AWS_S3_REGION_NAME = os.getenv("S3_REGION", "us-east-1").strip()
++    AWS_ACCESS_KEY_ID = os.getenv("S3_ACCESS_KEY_ID", "").strip()
++    AWS_SECRET_ACCESS_KEY = os.getenv("S3_SECRET_ACCESS_KEY", "").strip()
++    # Dirección pública de lectura (sin https:// ni barra final), p. ej.
++    # «<proyecto>.supabase.co/storage/v1/object/public/<bucket>».
++    AWS_S3_CUSTOM_DOMAIN = os.getenv("S3_PUBLIC_DOMAIN", "").strip() or None
++    AWS_QUERYSTRING_AUTH = False
++    AWS_DEFAULT_ACL = None
++    AWS_S3_FILE_OVERWRITE = False
++    AWS_S3_ADDRESSING_STYLE = "path"
++    AWS_S3_SIGNATURE_VERSION = "s3v4"
++    STORAGES["default"] = {"BACKEND": "storages.backends.s3.S3Storage"}
+ 
+ DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
+ 
+diff --git a/backend/requirements.txt b/backend/requirements.txt
+index d236f7c..2f93219 100644
+--- a/backend/requirements.txt
++++ b/backend/requirements.txt
+@@ -6,3 +6,4 @@ python-dotenv>=1.0,<2
+ Pillow>=10.4,<14
+ gunicorn>=22,<24
+ whitenoise>=6.7,<7
++django-storages[s3]>=1.14,<2
+diff --git a/render.yaml b/render.yaml
+index 9e1a80d..a5c0002 100644
+--- a/render.yaml
++++ b/render.yaml
+@@ -1,44 +1,39 @@
+-# Blueprint de Render para PACEÑO: un servicio web (API + PWA), PostgreSQL y un disco persistente para las fotos.
+-# Uso: Render → New → Blueprint → elegir este repositorio.
+-# Los planes pagos son necesarios para que los datos y las fotos no se pierdan (el plan gratuito duerme, no admite
+-# disco persistente y su base caduca a los 30 días). Verifique los nombres de plan vigentes en render.com/pricing.
+-databases:
+-  - name: paceno-db
+-    databaseName: paceno
+-    user: paceno
+-    plan: 0.1c-256mb
+-
++# Despliegue SIN COSTO de PACEÑO: un servicio web gratuito de Render (API + PWA).
++# El plan gratuito de Render no incluye base de datos duradera ni disco, así que se usan servicios externos gratuitos:
++#   · PostgreSQL → Neon (DATABASE_URL)        · Fotos y banners → Supabase Storage u otro S3 (S3_*)
++# El servicio gratuito se duerme tras 15 min sin visitas y tarda cerca de 1 min en despertar.
+ services:
+   - type: web
+     name: paceno
+     runtime: docker
+     dockerfilePath: ./Dockerfile
+     dockerContext: .
+-    plan: 0.5c-512mb
++    plan: free
+     healthCheckPath: /api/categorias/
+-    disk:
+-      name: paceno-media
+-      mountPath: /data
+-      sizeGB: 1
+     envVars:
+       - key: DJANGO_DEBUG
+         value: "False"
+       - key: DJANGO_SECRET_KEY
+         generateValue: true
+-      - key: DATABASE_URL
+-        fromDatabase:
+-          name: paceno-db
+-          property: connectionString
+-      - key: MEDIA_ROOT
+-        value: /data/media
+-      - key: SERVIR_MEDIA
+-        value: "True"
+       # Render termina HTTPS y reescribe X-Forwarded-Proto; hay exactamente 1 proxy delante de Django.
+       - key: USAR_X_FORWARDED_PROTO
+         value: "True"
+       - key: NUM_PROXIES
+         value: "1"
+-      # Administrador del panel /admin/ (se pide al crear el Blueprint; luego puede cambiarse en el panel).
++      - key: DATABASE_URL
++        sync: false
++      - key: S3_BUCKET
++        sync: false
++      - key: S3_ENDPOINT_URL
++        sync: false
++      - key: S3_REGION
++        sync: false
++      - key: S3_ACCESS_KEY_ID
++        sync: false
++      - key: S3_SECRET_ACCESS_KEY
++        sync: false
++      - key: S3_PUBLIC_DOMAIN
++        sync: false
+       - key: DJANGO_SUPERUSER_USERNAME
+         sync: false
+       - key: DJANGO_SUPERUSER_PASSWORD
