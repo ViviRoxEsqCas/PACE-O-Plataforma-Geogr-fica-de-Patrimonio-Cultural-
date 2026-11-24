@@ -29,6 +29,10 @@ if not SECRET_KEY:
         raise ImproperlyConfigured("Defina DJANGO_SECRET_KEY en el archivo .env.")
     SECRET_KEY = "inseguro-solo-para-desarrollo-local"
 ALLOWED_HOSTS = env_list("DJANGO_ALLOWED_HOSTS", "localhost,127.0.0.1")
+# Render define el dominio público del servicio en esta variable: se acepta sin tener que copiarlo a mano.
+_HOST_RENDER = os.getenv("RENDER_EXTERNAL_HOSTNAME", "").strip()
+if _HOST_RENDER and _HOST_RENDER not in ALLOWED_HOSTS:
+    ALLOWED_HOSTS.append(_HOST_RENDER)
 
 INSTALLED_APPS = [
     "django.contrib.admin",
@@ -49,6 +53,7 @@ INSTALLED_APPS = [
 
 MIDDLEWARE = [
     "django.middleware.security.SecurityMiddleware",
+    "whitenoise.middleware.WhiteNoiseMiddleware",  # sirve /static/ (admin) y la PWA compilada en producción
     "corsheaders.middleware.CorsMiddleware",
     "django.contrib.sessions.middleware.SessionMiddleware",
     "django.middleware.common.CommonMiddleware",
@@ -88,6 +93,16 @@ DATABASES = {
         "PORT": os.getenv("DB_PORT", "5432"),
     }
 }
+# Plataformas como Render entregan la base como una sola URL (DATABASE_URL); si existe, tiene prioridad.
+_URL_BD = os.getenv("DATABASE_URL", "").strip()
+if _URL_BD:
+    from urllib.parse import unquote, urlparse
+
+    _bd = urlparse(_URL_BD)
+    DATABASES["default"].update(
+        NAME=unquote(_bd.path.lstrip("/")), USER=unquote(_bd.username or ""), PASSWORD=unquote(_bd.password or ""),
+        HOST=_bd.hostname or "localhost", PORT=str(_bd.port or 5432),
+    )
 
 AUTH_PASSWORD_VALIDATORS = [
     {"NAME": "django.contrib.auth.password_validation.UserAttributeSimilarityValidator"},
@@ -104,7 +119,22 @@ USE_TZ = True
 STATIC_URL = "static/"
 STATIC_ROOT = BASE_DIR / "staticfiles"
 MEDIA_URL = "media/"
-MEDIA_ROOT = BASE_DIR / "media"
+# En producción apunte MEDIA_ROOT a un disco persistente (en Render: /data/media); si no, las fotos subidas se pierden.
+MEDIA_ROOT = Path(os.getenv("MEDIA_ROOT", str(BASE_DIR / "media")))
+# Sin DEBUG, Django no sirve /media/: con SERVIR_MEDIA=True lo hace la propia aplicación (suficiente para este volumen).
+SERVIR_MEDIA = env_bool("SERVIR_MEDIA", False)
+
+# PWA compilada (frontend/dist). Si existe, el mismo servicio entrega el sitio y la API en un solo origen
+# (sin CORS y con las rutas /api y /media relativas, como en desarrollo). Ver Dockerfile.
+FRONTEND_DIST = Path(os.getenv("FRONTEND_DIST", str(BASE_DIR.parent / "frontend" / "dist")))
+if (FRONTEND_DIST / "index.html").is_file():
+    WHITENOISE_ROOT = FRONTEND_DIST
+    WHITENOISE_INDEX_FILE = True
+    WHITENOISE_MIMETYPES = {".webmanifest": "application/manifest+json"}
+STORAGES = {
+    "default": {"BACKEND": "django.core.files.storage.FileSystemStorage"},
+    "staticfiles": {"BACKEND": "whitenoise.storage.CompressedStaticFilesStorage"},
+}
 
 DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
 
@@ -137,6 +167,8 @@ REST_FRAMEWORK = {
 # --- CORS restringido al origen de la PWA (sección 8.2) ---
 CORS_ALLOWED_ORIGINS = env_list("CORS_ALLOWED_ORIGINS", "http://localhost:5173,http://127.0.0.1:5173")
 CSRF_TRUSTED_ORIGINS = env_list("CSRF_TRUSTED_ORIGINS", "http://localhost:8000,http://127.0.0.1:8000")
+if _HOST_RENDER:
+    CSRF_TRUSTED_ORIGINS.append(f"https://{_HOST_RENDER}")  # el panel /admin/ funciona en el dominio de Render
 
 # --- Seguridad en producción (HTTPS) ---
 if not DEBUG:

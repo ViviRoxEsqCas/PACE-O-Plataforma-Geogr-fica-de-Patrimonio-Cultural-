@@ -200,3 +200,14 @@ Detalle de evidencias: [`docs/evidencias/`](docs/evidencias/) · [`verificacion_
 Desarrollo de Software e Innovación Tecnológica · La Paz, Bolivia
 
 </div>
+
+## Despliegue en Render
+
+El `Dockerfile` compila la PWA y la entrega junto con la API Django (gunicorn + WhiteNoise) en **un solo servicio**, sin CORS ni `VITE_API_URL`. `render.yaml` crea el servicio web, la base PostgreSQL y un disco persistente (`/data/media`) para fotos y banners.
+
+1. Suba el repositorio a GitHub y en Render elija **New → Blueprint** con este repositorio.
+2. Cuando lo pida, escriba usuario, contraseña y correo del administrador del panel (`DJANGO_SUPERUSER_*`).
+3. Al terminar el primer despliegue, el sitio queda en `https://<servicio>.onrender.com` y el panel en `/admin/`.
+
+Cada arranque ejecuta `migrate` y carga el catálogo, las actividades y las imágenes iniciales sin pisar lo que el Editor ya corrigió (`backend/entrypoint.sh`). Los planes gratuitos de Render no sirven para producción: el servicio duerme, no admite disco persistente y la base caduca a los 30 días. Si cambian los nombres de plan, ajústelos en `render.yaml`.
+

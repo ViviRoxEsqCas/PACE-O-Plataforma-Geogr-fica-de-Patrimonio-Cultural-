@@ -1,0 +1,47 @@
+# Blueprint de Render para PACEÑO: un servicio web (API + PWA), PostgreSQL y un disco persistente para las fotos.
+# Uso: Render → New → Blueprint → elegir este repositorio.
+# Los planes pagos son necesarios para que los datos y las fotos no se pierdan (el plan gratuito duerme, no admite
+# disco persistente y su base caduca a los 30 días). Verifique los nombres de plan vigentes en render.com/pricing.
+databases:
+  - name: paceno-db
+    databaseName: paceno
+    user: paceno
+    plan: 0.1c-256mb
+
+services:
+  - type: web
+    name: paceno
+    runtime: docker
+    dockerfilePath: ./Dockerfile
+    dockerContext: .
+    plan: 0.5c-512mb
+    healthCheckPath: /api/categorias/
+    disk:
+      name: paceno-media
+      mountPath: /data
+      sizeGB: 1
+    envVars:
+      - key: DJANGO_DEBUG
+        value: "False"
+      - key: DJANGO_SECRET_KEY
+        generateValue: true
+      - key: DATABASE_URL
+        fromDatabase:
+          name: paceno-db
+          property: connectionString
+      - key: MEDIA_ROOT
+        value: /data/media
+      - key: SERVIR_MEDIA
+        value: "True"
+      # Render termina HTTPS y reescribe X-Forwarded-Proto; hay exactamente 1 proxy delante de Django.
+      - key: USAR_X_FORWARDED_PROTO
+        value: "True"
+      - key: NUM_PROXIES
+        value: "1"
+      # Administrador del panel /admin/ (se pide al crear el Blueprint; luego puede cambiarse en el panel).
+      - key: DJANGO_SUPERUSER_USERNAME
+        sync: false
+      - key: DJANGO_SUPERUSER_PASSWORD
+        sync: false
+      - key: DJANGO_SUPERUSER_EMAIL
+        sync: false
