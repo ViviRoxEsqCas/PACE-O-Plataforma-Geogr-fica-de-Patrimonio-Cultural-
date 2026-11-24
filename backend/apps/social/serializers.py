@@ -13,6 +13,8 @@ User = get_user_model()
 USUARIO_RE = re.compile(r"^[A-Za-z0-9_]{3,30}$")
 FOTO_MAX_BYTES = 2 * 1024 * 1024
 FOTO_FORMATOS = {"JPEG", "PNG", "WEBP"}
+BANNER_MAX_BYTES = 3 * 1024 * 1024
+BANNER_ANCHO_MINIMO = 600  # px: por debajo se vería pixelado en la cabecera del perfil
 
 
 def perfil_de(usuario) -> PerfilVisitante:
@@ -25,6 +27,12 @@ def url_foto(perfil, request):
         return None
     # Misma razón que en ImagenSerializer.get_url (patrimonio): ruta «/media/…», no URL absoluta dependiente del Host.
     return perfil.foto.url
+
+
+def url_banner(perfil, request=None):
+    if not perfil or not perfil.banner:
+        return None
+    return perfil.banner.url
 
 
 def identidad(usuario, request):
@@ -68,10 +76,11 @@ class PerfilPropioSerializer(serializers.ModelSerializer):
 
     username = serializers.CharField(source="usuario.username", read_only=True)
     foto = serializers.ImageField(required=False, allow_null=True)
+    banner = serializers.ImageField(required=False, allow_null=True)
 
     class Meta:
         model = PerfilVisitante
-        fields = ("username", "nombre_visible", "biografia", "foto", "privacidad_perfil", "privacidad_actividad")
+        fields = ("username", "nombre_visible", "biografia", "foto", "banner", "privacidad_perfil", "privacidad_actividad")
 
     def validate_nombre_visible(self, valor):
         valor = limpiar_texto(valor, campo="nombre visible", maximo=40, minimo=2, una_linea=True)
@@ -98,16 +107,37 @@ class PerfilPropioSerializer(serializers.ModelSerializer):
         archivo.seek(0)
         return archivo
 
+    def validate_banner(self, archivo):
+        if archivo is None:
+            return None
+        if archivo.size > BANNER_MAX_BYTES:
+            raise serializers.ValidationError("El banner no puede superar los 3 MB.")
+        try:
+            imagen = Image.open(archivo)
+            formato, ancho = imagen.format, imagen.width
+            imagen.verify()
+        except Exception:
+            raise serializers.ValidationError("El archivo no es una imagen válida.")
+        if formato not in FOTO_FORMATOS:
+            raise serializers.ValidationError("Use una imagen JPG, PNG o WEBP.")
+        if ancho < BANNER_ANCHO_MINIMO:
+            raise serializers.ValidationError(f"El banner debe tener al menos {BANNER_ANCHO_MINIMO} px de ancho.")
+        archivo.seek(0)
+        return archivo
+
     def update(self, perfil, datos):
-        if "foto" in datos:
-            if perfil.foto:
-                perfil.foto.delete(save=False)  # no se acumulan fotos antiguas ni queda una foto «retirada» accesible
-            perfil.foto = datos.pop("foto") or ""
+        for campo in ("foto", "banner"):
+            if campo in datos:
+                anterior = getattr(perfil, campo)
+                if anterior:
+                    anterior.delete(save=False)  # no se acumulan archivos antiguos ni queda uno «retirado» accesible
+                setattr(perfil, campo, datos.pop(campo) or "")
         return super().update(perfil, datos)
 
     def to_representation(self, perfil):
         datos = super().to_representation(perfil)
         datos["foto"] = url_foto(perfil, self.context.get("request"))
+        datos["banner"] = url_banner(perfil, self.context.get("request"))
         return datos
 
 

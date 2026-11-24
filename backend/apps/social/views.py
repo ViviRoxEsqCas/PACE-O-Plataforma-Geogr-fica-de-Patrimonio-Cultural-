@@ -17,7 +17,7 @@ from . import reglas
 from .models import Amistad, EstadoAmistad, Privacidad, ReporteComentario, Valoracion, VisitaDeclarada
 from .serializers import (
     PerfilPropioSerializer, RegistroSerializer, ReporteComentarioEntradaSerializer, SolicitudAmistadSerializer,
-    ValoracionEntradaSerializer, identidad, perfil_de, serializar_valoracion, url_foto,
+    ValoracionEntradaSerializer, identidad, perfil_de, serializar_valoracion, url_banner, url_foto,
 )
 from .throttles import AccesoThrottle, AmistadThrottle, EscrituraSocialThrottle, RegistroThrottle
 
@@ -96,7 +96,9 @@ class YoView(BaseSocial):
         perfil = perfil_de(request.user)
         datos = PerfilPropioSerializer(perfil, context={"request": request}).data
         datos.update(reglas.contadores(request.user.id))
-        datos["logros"] = reglas.logros_de(reglas.contadores(request.user.id))
+        cont = reglas.contadores(request.user.id)
+        datos["logros"] = reglas.logros_de(cont)
+        datos["logros_pendientes"] = reglas.logros_pendientes_de(cont)
         return Response(datos)
 
     def patch(self, request):
@@ -148,6 +150,7 @@ class PerfilPublicoView(Publica):
         datos = {
             **base,
             "biografia": perfil.biografia,
+            "banner": url_banner(perfil, request),
             "miembro_desde": usuario.date_joined.date(),
             "contadores": {k: cont[k] for k in ("visitas", "valoraciones", "comentarios", "amigos")},
             "puntos": cont["puntos"],

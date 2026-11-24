@@ -125,6 +125,12 @@ def logros_de(cont: dict) -> list[dict]:
     return [{"codigo": c, "nombre": n, "condicion": d} for c, n, d, ok in LOGROS if ok(cont, total)]
 
 
+def logros_pendientes_de(cont: dict) -> list[dict]:
+    """Los logros que aún no se obtuvieron (para mostrarlos atenuados en el perfil propio)."""
+    total = BienPatrimonial.objects.filter(PUBLICADO).count()
+    return [{"codigo": c, "nombre": n, "condicion": d} for c, n, d, ok in LOGROS if not ok(cont, total)]
+
+
 def catalogo_de_logros() -> list[dict]:
     return [{"codigo": c, "nombre": n, "condicion": d} for c, n, d, _ in LOGROS]
 

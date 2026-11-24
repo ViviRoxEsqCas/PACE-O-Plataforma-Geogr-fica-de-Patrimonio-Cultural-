@@ -3,6 +3,7 @@ Pruebas del espacio social: cuentas, permisos de objeto, duplicados, privacidad,
 moderación, ranking/logros y flujos principales. Se ejecutan contra PostgreSQL real.
 """
 import io
+import os
 import shutil
 import tempfile
 from unittest.mock import patch
@@ -184,6 +185,66 @@ class CuentasTests(BaseSocial):
             self.assertEqual(c.patch("/api/cuentas/yo/", {"foto": SimpleUploadedFile("f.gif", gif.getvalue(), content_type="image/gif")}, format="multipart").status_code, 400)
             grande = SimpleUploadedFile("g.png", buf.getvalue() + b"0" * (2 * 1024 * 1024), content_type="image/png")
             self.assertEqual(c.patch("/api/cuentas/yo/", {"foto": grande}, format="multipart").status_code, 400)
+
+    def test_banner_se_sube_se_reemplaza_y_se_elimina(self):
+        media = tempfile.mkdtemp()
+        self.addCleanup(shutil.rmtree, media, True)
+
+        def png(ancho, alto=200):
+            buf = io.BytesIO()
+            Image.new("RGB", (ancho, alto), "navy").save(buf, "PNG")
+            return buf.getvalue()
+
+        with override_settings(MEDIA_ROOT=media):
+            u, c = registrar("mara")
+            self.assertIsNone(c.get("/api/cuentas/yo/").json()["banner"])
+            r = c.patch("/api/cuentas/yo/", {"banner": SimpleUploadedFile("b.png", png(900), content_type="image/png")}, format="multipart")
+            self.assertEqual(r.status_code, 200, r.content)
+            primero = r.json()["banner"]
+            self.assertTrue(primero.startswith("/media/perfiles/banner_usuario_") and primero.endswith(".png"))
+            # El banner viaja también en el perfil público, junto a la foto, que no se toca.
+            self.assertEqual(self.anonimo.get("/api/perfiles/mara/").json()["banner"], primero)
+            self.assertIsNone(c.get("/api/cuentas/yo/").json()["foto"])
+            # Reemplazo: el archivo anterior no queda en disco.
+            r = c.patch("/api/cuentas/yo/", {"banner": SimpleUploadedFile("otro.png", png(1200), content_type="image/png")}, format="multipart")
+            self.assertEqual(r.status_code, 200, r.content)
+            u.perfil_visitante.refresh_from_db()
+            self.assertEqual(len(os.listdir(os.path.join(media, "perfiles"))), 1)
+            # Eliminación (JSON null).
+            r = c.patch("/api/cuentas/yo/", {"banner": None}, format="json")
+            self.assertEqual(r.status_code, 200, r.content)
+            self.assertIsNone(r.json()["banner"])
+            self.assertEqual(os.listdir(os.path.join(media, "perfiles")), [])
+            self.assertIsNone(self.anonimo.get("/api/perfiles/mara/").json()["banner"])
+
+    def test_banner_valida_formato_ancho_y_tamano(self):
+        media = tempfile.mkdtemp()
+        self.addCleanup(shutil.rmtree, media, True)
+        with override_settings(MEDIA_ROOT=media):
+            _, c = registrar("nico")
+            buf = io.BytesIO()
+            Image.new("RGB", (900, 100), "red").save(buf, "PNG")
+            pequena = io.BytesIO()
+            Image.new("RGB", (300, 100), "red").save(pequena, "PNG")
+            gif = io.BytesIO()
+            Image.new("RGB", (900, 100)).save(gif, "GIF")
+            casos = [
+                SimpleUploadedFile("f.png", b"no soy una imagen", content_type="image/png"),
+                SimpleUploadedFile("p.png", pequena.getvalue(), content_type="image/png"),
+                SimpleUploadedFile("g.gif", gif.getvalue(), content_type="image/gif"),
+                SimpleUploadedFile("grande.png", buf.getvalue() + b"0" * (3 * 1024 * 1024), content_type="image/png"),
+            ]
+            for archivo in casos:
+                self.assertEqual(c.patch("/api/cuentas/yo/", {"banner": archivo}, format="multipart").status_code, 400, archivo.name)
+            self.assertIsNone(c.get("/api/cuentas/yo/").json()["banner"])
+            self.assertEqual(self.anonimo.patch("/api/cuentas/yo/", {"banner": None}, format="json").status_code, 401)
+
+    def test_yo_incluye_logros_obtenidos_y_pendientes(self):
+        _, c = registrar("oli")
+        datos = c.get("/api/cuentas/yo/").json()
+        codigos = {l["codigo"] for l in datos["logros"]} | {l["codigo"] for l in datos["logros_pendientes"]}
+        self.assertEqual(codigos, {codigo for codigo, *_ in reglas.LOGROS})
+        self.assertEqual(datos["logros"], [])
 
 
 # ---------------------------------------------------------------------------------------------------

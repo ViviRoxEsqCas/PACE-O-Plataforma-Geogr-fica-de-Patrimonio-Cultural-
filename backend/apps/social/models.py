@@ -2,7 +2,7 @@
 Espacio social vinculado al patrimonio (sin chat, grupos ni feed complejo).
 
 Se reutiliza el usuario de Django (no hay tabla de usuario propia). Tablas nuevas (5):
-  perfil_visitante   1:1 con auth_user  · nombre visible, foto, biografía, privacidad
+  perfil_visitante   1:1 con auth_user  · nombre visible, foto, banner, biografía, privacidad
   valoracion         N:1 usuario, N:1 bien · 1–5 estrellas + comentario opcional (única por usuario y bien)
   reporte_comentario N:1 valoración, N:1 usuario · denuncia de un comentario (única por denunciante)
   amistad            solicitante → destinatario · estado; una sola fila por pareja, sin importar el sentido
@@ -10,6 +10,8 @@ Se reutiliza el usuario de Django (no hay tabla de usuario propia). Tablas nueva
 Logros y ranking NO tienen tabla: se calculan siempre a partir de las acciones anteriores (ver reglas.py),
 así no pueden quedar desincronizados ni inventarse retroactivamente.
 """
+import uuid
+
 from django.conf import settings
 from django.core.validators import MaxValueValidator, MinValueValidator
 from django.db import models
@@ -30,11 +32,18 @@ def ruta_foto_perfil(instancia, nombre):
     return f"perfiles/usuario_{instancia.usuario_id}.{extension}"
 
 
+def ruta_banner_perfil(instancia, nombre):
+    extension = nombre.rsplit(".", 1)[-1].lower() if "." in nombre else "jpg"
+    # Nombre único por subida: así el navegador no muestra un banner antiguo desde su caché al reemplazarlo.
+    return f"perfiles/banner_usuario_{instancia.usuario_id}_{uuid.uuid4().hex[:8]}.{extension}"
+
+
 class PerfilVisitante(models.Model):
     usuario = models.OneToOneField(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name="perfil_visitante")
     nombre_visible = models.CharField("nombre visible", max_length=40)
     biografia = models.CharField("biografía", max_length=280, blank=True)
     foto = models.ImageField("fotografía", upload_to=ruta_foto_perfil, blank=True)
+    banner = models.ImageField("banner del perfil", upload_to=ruta_banner_perfil, blank=True)
     privacidad_perfil = models.CharField(max_length=8, choices=Privacidad.choices, default=Privacidad.PUBLICO)
     privacidad_actividad = models.CharField(max_length=8, choices=Privacidad.choices, default=Privacidad.AMIGOS)
     created_at = models.DateTimeField("creado", auto_now_add=True)
